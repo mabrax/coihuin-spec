@@ -1,0 +1,33 @@
+name: "Coihuin Spec"
+description: "Spec-driven development methodology and CLI tool optimized for human-agent collaboration"
+purpose: "Test whether structured process granularity helps coding agents produce better results with fewer iterations by providing the right context at each development phase"
+created: 2025-12-13
+
+scope:
+  includes:
+    - Spec-driven development methodology
+    - CLI tool (cspec) for issue management and validation
+    - Slash commands for Claude Code integration
+    - Documentation for methodology and tooling
+    - Single-agent workflow optimization
+  excludes:
+    - IDE/editor plugins (VS Code, etc.)
+    - Enterprise features (SSO, audit logs, governance)
+    - Multi-agent swarm orchestration (deferred for complexity management)
+
+tech_stack:
+  languages:
+    - Python 3.13+
+  frameworks:
+    - Click (CLI)
+    - Pydantic (validation)
+  dependencies:
+    - PyYAML (configuration)
+    - Hatch/hatchling (build)
+
+stakeholders:
+  - Solo developers using coding agents
+  - Methodology explorers researching structured AI development workflows
+
+methodology: spec-driven
+version: 0.1.0

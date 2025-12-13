@@ -1,143 +1,233 @@
-# Agent Instructions
+# AGENTS.md
 
-## Issue Tracking with bd (beads)
+This document provides coding agents with the context needed to work effectively in this project.
 
-**IMPORTANT**: This project uses **bd (beads)** for ALL issue tracking. Do NOT use markdown TODOs, task lists, or other tracking methods.
+---
 
-### Why bd?
+## CLI Commands Reference
 
-- Dependency-aware: Track blockers and relationships between issues
-- Git-friendly: Auto-syncs to JSONL for version control
-- Agent-optimized: JSON output, ready work detection, discovered-from links
-- Prevents duplicate tracking systems and confusion
+The `cspec` CLI provides the following commands:
 
-### Quick Start
+| Command | Description |
+|---------|-------------|
+| `cspec init` | Initialize spec-driven development (creates directories + installs slash commands) |
+| `cspec validate <path>` | Validate an issue file against the schema |
+| `cspec validate <path> --strict` | Validate with strict mode (fail on warnings) |
+| `cspec list` | List all issues in the project |
+| `cspec list --status=<status>` | Filter issues by status (draft, ready, in-progress, blocked, done) |
+| `cspec update` | Update slash commands to latest version |
 
-**Check for ready work:**
-```bash
-bd ready --json
+---
+
+## Slash Commands Reference
+
+Slash commands are available in Claude Code and are namespaced as `cspec:<command>`.
+
+| Command | Description | Usage |
+|---------|-------------|-------|
+| `/cspec/init` | Create PROJECT.yaml and CONSTITUTION.md | `/cspec/init <project name>` |
+| `/cspec/issue-create` | Interactive issue creation with proper structure | `/cspec/issue-create <description>` |
+| `/cspec/issue-validate` | Full validation with suggestions and fixes | `/cspec/issue-validate <issue-id>` |
+
+**Note**: Commands can also be invoked as `cspec:init`, `cspec:issue-create`, etc.
+
+---
+
+## Workflow Documentation
+
+This project follows **spec-driven development** methodology.
+
+### Development Flow
+
+```
+Issue --> Spec --> Implementation --> Verification --> Done
+  ^                                        |
+  |                                        |
+  +-------- feedback loop -----------------+
 ```
 
-**Create new issues:**
-```bash
-bd create "Issue title" -t bug|feature|task -p 0-4 --json
-bd create "Issue title" -p 1 --deps discovered-from:bd-123 --json
-bd create "Subtask" --parent <epic-id> --json  # Hierarchical subtask (gets ID like epic-id.1)
+### Phases
+
+#### Phase 1: Issue Definition
+**Goal**: Capture and validate the change request.
+
+1. Create issue: `/cspec/issue-create <description>`
+2. Classify: Determine nature (feature, bug, etc.) and impact (breaking, additive, invisible)
+3. Define scope and acceptance criteria
+4. Validate schema: `cspec validate specs/issues/ISSUE-XXX.md`
+5. Full validation: `/cspec/issue-validate ISSUE-XXX`
+6. When passing, update status to `ready`
+
+#### Phase 2: Specification
+**Goal**: Define detailed implementation approach before writing code.
+
+1. Identify boundaries the change crosses
+2. Create spec artifacts per boundary
+3. Define validation hooks (how to verify implementation)
+4. Review and approve specs
+
+#### Phase 3: Implementation
+**Goal**: Build according to specification.
+
+1. Review spec thoroughly
+2. Implement following spec exactly
+3. Run validation hooks during development
+4. Address all acceptance criteria
+
+#### Phase 4: Verification
+**Goal**: Confirm implementation matches specification.
+
+1. Run all validation hooks
+2. Check acceptance criteria
+3. Update persistent artifacts
+4. Sign-off and close issue
+
+### Issue Natures
+
+| Nature | When to Use |
+|--------|-------------|
+| `feature` | New capability |
+| `enhancement` | Improvement to existing functionality |
+| `bug` | Fix defective behavior |
+| `refactor` | Code restructuring, no behavior change |
+| `optimization` | Performance improvement |
+| `security` | Vulnerability fix |
+| `hotfix` | Urgent production fix |
+| `migration` | Data/infrastructure move |
+| `configuration` | Settings change |
+| `deprecation` | Mark for future removal |
+| `removal` | Delete deprecated functionality |
+
+### Impact to Version Mapping
+
+| Impact | Version | Meaning |
+|--------|---------|---------|
+| `breaking` | `major` | Consumers must change their code |
+| `additive` | `minor` | New surface area, existing unchanged |
+| `invisible` | `patch` | No external change visible to consumers |
+
+### Issue Status Flow
+
+```
+draft --> ready --> in-progress --> done
+                        |
+                        v
+                     blocked
 ```
 
-**Claim and update:**
-```bash
-bd update bd-42 --status in_progress --json
-bd update bd-42 --priority 1 --json
+---
+
+## File Structure
+
+```
+specs/
+├── PROJECT.yaml      # Project definition
+├── CONSTITUTION.md   # Rules and philosophy
+└── issues/
+    └── ISSUE-XXX.md  # Issue files
+
+.claude/commands/cspec/  # Slash commands (namespaced)
 ```
 
-**Complete work:**
-```bash
-bd close bd-42 --reason "Completed" --json
+---
+
+## PROJECT CONTEXT
+
+### Project Overview
+
+**Coihuin Spec** is a methodology and CLI tool for spec-driven development optimized for human-agent collaboration. It tests the hypothesis that structured process granularity helps coding agents produce better results with fewer iterations by providing the right context at each development phase.
+
+The core flow is: `Issue → Spec → Implementation → Verification`
+
+Currently in Alpha, recursively dogfooding on itself.
+
+### Tech Stack
+
+- **Languages**: Python 3.13+
+- **Frameworks**: Click (CLI), Pydantic (validation)
+- **Key Dependencies**: PyYAML (configuration parsing)
+- **Build System**: Hatch/hatchling
+- **Package Manager**: uv
+
+### Architecture
+
+```
+coihuin-spec/
+├── docs/                    # Methodology documentation
+├── specs/                   # Project specs (source of truth)
+│   ├── PROJECT.yaml        # Project definition
+│   ├── CONSTITUTION.md     # Rules and philosophy
+│   └── issues/             # Issue tracking
+├── tooling/
+│   └── cspec/              # The CLI tool
+│       ├── src/cspec/
+│       │   ├── cli.py      # Main entry point
+│       │   ├── commands/   # Slash command templates
+│       │   ├── models/     # Pydantic models
+│       │   └── validators/ # Validation logic
+│       └── pyproject.toml
+└── AGENTS.md               # This file
 ```
 
-### Issue Types
+**Entry point**: `tooling/cspec/src/cspec/cli.py`
 
-- `bug` - Something broken
-- `feature` - New functionality
-- `task` - Work item (tests, docs, refactoring)
-- `epic` - Large feature with subtasks
-- `chore` - Maintenance (dependencies, tooling)
+**Data flow**:
+1. User runs `cspec` command or `/cspec:*` slash command
+2. CLI parses arguments via Click
+3. Commands read/validate issue files from `specs/issues/`
+4. Pydantic models validate structure
+5. Results output to terminal
 
-### Priorities
+### Key Conventions
 
-- `0` - Critical (security, data loss, broken builds)
-- `1` - High (major features, important bugs)
-- `2` - Medium (default, nice-to-have)
-- `3` - Low (polish, optimization)
-- `4` - Backlog (future ideas)
+- **Naming**: snake_case for Python, kebab-case for CLI commands
+- **File Structure**: Commands in `commands/`, models in `models/`, validators in `validators/`
+- **Patterns**: Command pattern for CLI, model-based validation
+- **Slash Commands**: Stored as `.md` files in `src/cspec/commands/cspec/`
 
-### Workflow for AI Agents
+### Important Files
 
-1. **Check ready work**: `bd ready` shows unblocked issues
-2. **Claim your task**: `bd update <id> --status in_progress`
-3. **Work on it**: Implement, test, document
-4. **Discover new work?** Create linked issue:
-   - `bd create "Found bug" -p 1 --deps discovered-from:<parent-id>`
-5. **Complete**: `bd close <id> --reason "Done"`
-6. **Commit together**: Always commit the `.beads/issues.jsonl` file together with the code changes so issue state stays in sync with code state
+| File | Purpose |
+|------|---------|
+| `tooling/cspec/src/cspec/cli.py` | CLI entry point, all commands defined here |
+| `tooling/cspec/src/cspec/models/issue.py` | Issue Pydantic model |
+| `tooling/cspec/src/cspec/validators/issue_validator.py` | Issue validation logic |
+| `docs/methodology.md` | Full development workflow |
+| `docs/issue-template.md` | Issue file structure |
+| `docs/change-taxonomy-system.md` | Nature/impact classification |
 
-### Auto-Sync
+### Testing
 
-bd automatically syncs with git:
-- Exports to `.beads/issues.jsonl` after changes (5s debounce)
-- Imports from JSONL when newer (e.g., after `git pull`)
-- No manual export/import needed!
+- **Framework**: pytest
+- **Run Tests**: `cd tooling/cspec && uv run pytest`
+- **Test Location**: `tooling/cspec/tests/`
+- **Coverage**: Not enforced yet (alpha stage)
 
-### GitHub Copilot Integration
+### Build & Deploy
 
-If using GitHub Copilot, also create `.github/copilot-instructions.md` for automatic instruction loading.
-Run `bd onboard` to get the content, or see step 2 of the onboard instructions.
+- **Install**: `cd tooling/cspec && uv sync`
+- **Run CLI**: `uv run cspec <command>` or install with `uv pip install -e .`
+- **Build Package**: `uv build`
+- **Deploy**: Not published to PyPI yet
 
-### MCP Server (Recommended)
+### Domain Knowledge
 
-If using Claude or MCP-compatible clients, install the beads MCP server:
+**Key Concepts**:
+- **Issue**: A change request with nature, impact, scope, and acceptance criteria
+- **Nature**: Type of change (feature, bug, enhancement, refactor, etc.)
+- **Impact**: Effect on consumers (breaking → major, additive → minor, invisible → patch)
+- **Spec**: Detailed implementation design created before coding
+- **Validation hooks**: Commands/tests to verify implementation matches spec
+- **Transient artifacts**: Delete when done (wireframes, plans)
+- **Persistent artifacts**: Source of truth (API contracts, schemas)
+- **Convergent loop**: Aim for one-shot, handle iteration gracefully
 
-```bash
-pip install beads-mcp
-```
+---
 
-Add to MCP config (e.g., `~/.config/claude/config.json`):
-```json
-{
-  "beads": {
-    "command": "beads-mcp",
-    "args": []
-  }
-}
-```
+## References
 
-Then use `mcp__beads__*` functions instead of CLI commands.
-
-### Managing AI-Generated Planning Documents
-
-AI assistants often create planning and design documents during development:
-- PLAN.md, IMPLEMENTATION.md, ARCHITECTURE.md
-- DESIGN.md, CODEBASE_SUMMARY.md, INTEGRATION_PLAN.md
-- TESTING_GUIDE.md, TECHNICAL_DESIGN.md, and similar files
-
-**Best Practice: Use a dedicated directory for these ephemeral files**
-
-**Recommended approach:**
-- Create a `history/` directory in the project root
-- Store ALL AI-generated planning/design docs in `history/`
-- Keep the repository root clean and focused on permanent project files
-- Only access `history/` when explicitly asked to review past planning
-
-**Example .gitignore entry (optional):**
-```
-# AI planning documents (ephemeral)
-history/
-```
-
-**Benefits:**
-- Clean repository root
-- Clear separation between ephemeral and permanent documentation
-- Easy to exclude from version control if desired
-- Preserves planning history for archeological research
-- Reduces noise when browsing the project
-
-### CLI Help
-
-Run `bd <command> --help` to see all available flags for any command.
-For example: `bd create --help` shows `--parent`, `--deps`, `--assignee`, etc.
-
-### Important Rules
-
-- ✅ Use bd for ALL task tracking
-- ✅ Always use `--json` flag for programmatic use
-- ✅ Link discovered work with `discovered-from` dependencies
-- ✅ Check `bd ready` before asking "what should I work on?"
-- ✅ Store AI planning docs in `history/` directory
-- ✅ Run `bd <cmd> --help` to discover available flags
-- ❌ Do NOT create markdown TODO lists
-- ❌ Do NOT use external issue trackers
-- ❌ Do NOT duplicate tracking systems
-- ❌ Do NOT clutter repo root with planning documents
-
-For more details, see README.md and QUICKSTART.md.
+- [Methodology](docs/methodology.md) - Full spec-driven development methodology
+- [Issue Template](docs/issue-template.md) - Issue file structure
+- [Issue Validation](docs/issue-validation.md) - Validation rules
+- [Change Taxonomy](docs/change-taxonomy-system.md) - Classification system
+- [Cheatsheet](docs/cheatsheet.md) - Quick reference
