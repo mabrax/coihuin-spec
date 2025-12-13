@@ -775,7 +775,12 @@ def onboard(force: bool):
 
 
 @main.command("list")
-@click.option("--status", "-s", type=str, help="Filter by status")
+@click.option(
+    "--status",
+    "-s",
+    type=click.Choice(["draft", "ready", "in-progress", "blocked", "done"], case_sensitive=False),
+    help="Filter by status",
+)
 def list_issues(status: str):
     """List all issues in the project."""
     issues_dir = Path.cwd() / "specs" / "issues"
@@ -807,6 +812,10 @@ def list_issues(status: str):
                 click.echo(f"    {title}")
             except yaml.YAMLError:
                 click.echo(f"  {issue_path.stem} [error parsing]")
+
+    # Show hint about filtering when no filter is applied
+    if not status:
+        click.echo("\nFilter by status: --status=draft|ready|in-progress|blocked|done")
 
 
 def _normalize_issue_id(issue_id: str) -> str:
