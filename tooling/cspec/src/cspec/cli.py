@@ -485,7 +485,7 @@ def status():
     if issues_found:
         click.echo("Status: ISSUES FOUND")
         click.echo("\nRun 'cspec init' to create missing directories.")
-        click.echo("Use '/cspec:init' slash command to create configuration files.")
+        click.echo("Run 'cspec onboard' to create configuration files.")
         sys.exit(1)
     else:
         click.echo("Status: HEALTHY")
@@ -807,6 +807,159 @@ def list_issues(status: str):
                 click.echo(f"    {title}")
             except yaml.YAMLError:
                 click.echo(f"  {issue_path.stem} [error parsing]")
+
+
+def _normalize_issue_id(issue_id: str) -> str:
+    """Normalize issue ID to ISSUE-XXX format.
+
+    Accepts: ISSUE-001, 001, 1
+    Returns: ISSUE-001
+    """
+    # Strip any prefix and get just the number
+    if issue_id.upper().startswith("ISSUE-"):
+        num_part = issue_id[6:]
+    else:
+        num_part = issue_id
+
+    # Pad to at least 3 digits
+    try:
+        num = int(num_part)
+        return f"ISSUE-{num:03d}"
+    except ValueError:
+        return issue_id  # Return as-is if not parseable
+
+
+def _extract_section(body: str, section_name: str) -> str | None:
+    """Extract content from a markdown section."""
+    pattern = rf"## {section_name}\n+(.*?)(?=\n## |\Z)"
+    match = re.search(pattern, body, re.DOTALL)
+    if match:
+        return match.group(1).strip()
+    return None
+
+
+@main.command("show")
+@click.argument("issue_id")
+def show_issue(issue_id: str):
+    """Show details of a specific issue.
+
+    ISSUE_ID can be the full ID (ISSUE-001) or just the number (001 or 1).
+    """
+    issues_dir = Path.cwd() / "specs" / "issues"
+
+    if not issues_dir.exists():
+        click.echo("No specs/issues directory found. Run 'cspec init' first.")
+        sys.exit(1)
+
+    # Normalize the issue ID
+    normalized_id = _normalize_issue_id(issue_id)
+    issue_path = issues_dir / f"{normalized_id}.md"
+
+    if not issue_path.exists():
+        click.echo(f"Issue not found: {normalized_id}")
+        click.echo(f"  Looked for: {issue_path}")
+        # Suggest similar issues
+        existing = list(issues_dir.glob("ISSUE-*.md"))
+        if existing:
+            click.echo(f"\nAvailable issues:")
+            for p in sorted(existing):
+                click.echo(f"  {p.stem}")
+        sys.exit(1)
+
+    # Read and parse the issue
+    content = issue_path.read_text()
+    frontmatter_match = re.match(r"^---\n(.*?)\n---", content, re.DOTALL)
+
+    if not frontmatter_match:
+        click.echo(f"Error: {normalized_id} has no valid frontmatter")
+        sys.exit(1)
+
+    try:
+        data = yaml.safe_load(frontmatter_match.group(1))
+    except yaml.YAMLError as e:
+        click.echo(f"Error parsing frontmatter: {e}")
+        sys.exit(1)
+
+    body = content[frontmatter_match.end():]
+
+    # Display formatted output
+    click.echo()
+    click.echo(click.style(f"═══ {data.get('id', normalized_id)} ═══", fg="cyan", bold=True))
+    click.echo()
+    click.echo(click.style(data.get("title", "Untitled"), bold=True))
+    click.echo()
+
+    # Metadata line
+    nature = data.get("nature", "unknown")
+    impact = data.get("impact", "unknown")
+    version = data.get("version", "unknown")
+    status = data.get("status", "unknown")
+
+    status_colors = {
+        "draft": "yellow",
+        "ready": "blue",
+        "in-progress": "magenta",
+        "blocked": "red",
+        "done": "green",
+    }
+    status_color = status_colors.get(status, "white")
+
+    click.echo(f"Nature: {nature}  │  Impact: {impact}  │  Version: {version}")
+    click.echo(f"Status: {click.style(status, fg=status_color, bold=True)}")
+    click.echo(f"Created: {data.get('created', 'unknown')}  │  Updated: {data.get('updated', 'unknown')}")
+
+    # Dependencies
+    depends_on = data.get("depends_on", [])
+    blocks = data.get("blocks", [])
+    if depends_on or blocks:
+        click.echo()
+        click.echo(click.style("Dependencies:", underline=True))
+        if depends_on:
+            click.echo(f"  Depends on: {', '.join(depends_on)}")
+        if blocks:
+            click.echo(f"  Blocks: {', '.join(blocks)}")
+
+    # Problem section
+    problem = _extract_section(body, "Problem")
+    if problem:
+        click.echo()
+        click.echo(click.style("Problem:", underline=True))
+        for line in problem.split("\n"):
+            click.echo(f"  {line}")
+
+    # Scope section
+    click.echo()
+    click.echo(click.style("Scope:", underline=True))
+
+    in_scope = re.search(r"### In Scope\n+(.*?)(?=\n### |\n## |\Z)", body, re.DOTALL)
+    if in_scope:
+        click.echo("  In Scope:")
+        for line in in_scope.group(1).strip().split("\n"):
+            click.echo(f"    {line}")
+
+    out_scope = re.search(r"### Out of Scope\n+(.*?)(?=\n### |\n## |\Z)", body, re.DOTALL)
+    if out_scope:
+        click.echo("  Out of Scope:")
+        for line in out_scope.group(1).strip().split("\n"):
+            click.echo(f"    {line}")
+
+    # Acceptance Criteria
+    criteria = _extract_section(body, "Acceptance Criteria")
+    if criteria:
+        click.echo()
+        click.echo(click.style("Acceptance Criteria:", underline=True))
+        for line in criteria.split("\n"):
+            click.echo(f"  {line}")
+
+    # Notes
+    notes = _extract_section(body, "Notes")
+    if notes:
+        click.echo()
+        click.echo(click.style("Notes:", underline=True))
+        for line in notes.split("\n"):
+            click.echo(f"  {line}")
+
+    click.echo()
 
 
 if __name__ == "__main__":

@@ -25,11 +25,10 @@ Slash commands are available in Claude Code and are namespaced as `cspec:<comman
 
 | Command | Description | Usage |
 |---------|-------------|-------|
-| `/cspec/init` | Create PROJECT.yaml and CONSTITUTION.md | `/cspec/init <project name>` |
 | `/cspec/issue-create` | Interactive issue creation with proper structure | `/cspec/issue-create <description>` |
 | `/cspec/issue-validate` | Full validation with suggestions and fixes | `/cspec/issue-validate <issue-id>` |
 
-**Note**: Commands can also be invoked as `cspec:init`, `cspec:issue-create`, etc.
+**Note**: Commands can also be invoked as `cspec:issue-create`, `cspec:issue-validate`, etc.
 
 ---
 

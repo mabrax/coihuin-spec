@@ -15,6 +15,7 @@ The `cspec` CLI provides the following commands:
 | `cspec validate <path> --strict` | Validate with strict mode (fail on warnings) |
 | `cspec list` | List all issues in the project |
 | `cspec list --status=<status>` | Filter issues by status (draft, ready, in-progress, blocked, done) |
+| `cspec show <issue-id>` | Show details of a specific issue (accepts ISSUE-001, 001, or 1) |
 | `cspec update` | Update slash commands to latest version |
 
 ---
@@ -25,11 +26,10 @@ Slash commands are available in Claude Code and are namespaced as `cspec:<comman
 
 | Command | Description | Usage |
 |---------|-------------|-------|
-| `/cspec/init` | Create PROJECT.yaml and CONSTITUTION.md | `/cspec/init <project name>` |
 | `/cspec/issue-create` | Interactive issue creation with proper structure | `/cspec/issue-create <description>` |
 | `/cspec/issue-validate` | Full validation with suggestions and fixes | `/cspec/issue-validate <issue-id>` |
 
-**Note**: Commands can also be invoked as `cspec:init`, `cspec:issue-create`, etc.
+**Note**: Commands can also be invoked as `cspec:issue-create`, `cspec:issue-validate`, etc.
 
 ---
 
