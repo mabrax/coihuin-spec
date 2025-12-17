@@ -23,7 +23,7 @@ $ARGUMENTS
 First, run the deterministic schema validation using cspec:
 
 ```bash
-cspec validate specs/issues/ISSUE-XXX.md
+cspec validate cspec/issues/ISSUE-XXX.md
 ```
 
 If this fails, fix the schema errors before proceeding. Schema validation checks:
@@ -35,7 +35,7 @@ If this fails, fix the schema errors before proceeding. Schema validation checks
 
 ### Step 2: Load the Issue
 
-Find and read the issue file from `specs/issues/ISSUE-XXX.md`
+Find and read the issue file from `cspec/issues/ISSUE-XXX.md`
 
 ### Step 3: Universal Requirements
 

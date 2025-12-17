@@ -50,7 +50,7 @@ uv run cspec init
 ```
 
 This creates:
-- `specs/issues/` — Where issues live
+- `cspec/issues/` — Where issues live
 - `.claude/commands/cspec/` — Slash commands for Claude Code
 
 ### Create and validate an issue
@@ -60,7 +60,7 @@ This creates:
 /cspec:issue-create "Add user authentication"
 
 # Validate the issue
-uv run cspec validate specs/issues/ISSUE-001.md
+uv run cspec validate cspec/issues/ISSUE-001.md
 
 # List all issues
 uv run cspec list
@@ -138,7 +138,7 @@ Commands:
 ### Validation Example
 
 ```bash
-$ cspec validate specs/issues/ISSUE-001.md
+$ cspec validate cspec/issues/ISSUE-001.md
 
 Validating ISSUE-001.md...
 

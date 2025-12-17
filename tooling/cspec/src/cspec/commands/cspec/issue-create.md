@@ -71,11 +71,11 @@ Based on the nature, identify what context documents are required:
 
 Check existing issues and generate the next sequential ID:
 - Pattern: `ISSUE-XXX` (zero-padded, e.g., ISSUE-001)
-- Look in `/specs/issues/` directory for existing issues
+- Look in `/cspec/issues/` directory for existing issues
 
 ### Step 4: Create the Issue File
 
-Create the issue file at: `/specs/issues/ISSUE-XXX.md`
+Create the issue file at: `/cspec/issues/ISSUE-XXX.md`
 
 Use this structure:
 

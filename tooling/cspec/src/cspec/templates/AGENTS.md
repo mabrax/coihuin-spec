@@ -53,7 +53,7 @@ Issue --> Spec --> Implementation --> Verification --> Done
 1. Create issue: `/cspec/issue-create <description>`
 2. Classify: Determine nature (feature, bug, etc.) and impact (breaking, additive, invisible)
 3. Define scope and acceptance criteria
-4. Validate schema: `cspec validate specs/issues/ISSUE-XXX.md`
+4. Validate schema: `cspec validate cspec/issues/ISSUE-XXX.md`
 5. Full validation: `/cspec/issue-validate ISSUE-XXX`
 6. When passing, update status to `ready`
 
@@ -119,7 +119,7 @@ draft --> ready --> in-progress --> done
 ## File Structure
 
 ```
-specs/
+cspec/
 ├── PROJECT.yaml      # Project definition
 ├── CONSTITUTION.md   # Rules and philosophy
 └── issues/

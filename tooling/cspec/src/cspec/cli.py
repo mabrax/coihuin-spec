@@ -185,7 +185,7 @@ def init(force: bool):
 
     # Directories to create
     dirs = [
-        project_root / "specs" / "issues",
+        project_root / "cspec" / "issues",
         project_root / ".claude" / "commands" / "cspec",
     ]
 
@@ -431,8 +431,8 @@ def status():
     # Check directory structure
     click.echo("Directory Structure:")
     required_dirs = [
-        ("specs/", project_root / "specs"),
-        ("specs/issues/", project_root / "specs" / "issues"),
+        ("cspec/", project_root / "cspec"),
+        ("cspec/issues/", project_root / "cspec" / "issues"),
         (".claude/commands/", project_root / ".claude" / "commands"),
     ]
 
@@ -447,7 +447,7 @@ def status():
 
     # Check PROJECT.yaml
     click.echo("Configuration Files:")
-    project_yaml = project_root / "specs" / "PROJECT.yaml"
+    project_yaml = project_root / "cspec" / "PROJECT.yaml"
     project_status = _check_yaml_status(project_yaml)
     if project_status == "filled":
         click.echo(f"  [OK] PROJECT.yaml (filled)")
@@ -459,7 +459,7 @@ def status():
         issues_found = True
 
     # Check CONSTITUTION.md
-    constitution = project_root / "specs" / "CONSTITUTION.md"
+    constitution = project_root / "cspec" / "CONSTITUTION.md"
     constitution_status = _check_file_status(constitution)
     if constitution_status == "filled":
         click.echo(f"  [OK] CONSTITUTION.md (filled)")
@@ -507,7 +507,7 @@ cspec status
 ```
 
 Review the output to understand:
-- Whether specs/ directory exists
+- Whether cspec/ directory exists
 - Whether PROJECT.yaml exists and has content
 - Whether CONSTITUTION.md exists and has content
 - Current issue count and statuses
@@ -525,7 +525,7 @@ If PROJECT.yaml is missing or empty, gather information from the user:
 5. **Scope**: What\'s in and out of bounds for this project?
 6. **Stakeholders**: Who uses or depends on this project?
 
-**Then create `specs/PROJECT.yaml`:**
+**Then create `cspec/PROJECT.yaml`:**
 
 ```yaml
 name: "<project name>"
@@ -568,7 +568,7 @@ If CONSTITUTION.md is missing or empty, gather information from the user:
 4. **Anti-patterns**: What practices should be avoided?
 5. **Decision Framework**: How should technical decisions be made?
 
-**Then create `specs/CONSTITUTION.md`:**
+**Then create `cspec/CONSTITUTION.md`:**
 
 ```markdown
 # Constitution
@@ -748,8 +748,8 @@ def onboard(force: bool):
     project_root = Path.cwd()
 
     # Check onboarding status
-    project_yaml = project_root / "specs" / "PROJECT.yaml"
-    constitution = project_root / "specs" / "CONSTITUTION.md"
+    project_yaml = project_root / "cspec" / "PROJECT.yaml"
+    constitution = project_root / "cspec" / "CONSTITUTION.md"
 
     project_status = _check_yaml_status(project_yaml)
     constitution_status = _check_file_status(constitution)
@@ -783,10 +783,10 @@ def onboard(force: bool):
 )
 def list_issues(status: str):
     """List all issues in the project."""
-    issues_dir = Path.cwd() / "specs" / "issues"
+    issues_dir = Path.cwd() / "cspec" / "issues"
 
     if not issues_dir.exists():
-        click.echo("No specs/issues directory found. Run 'cspec init' first.")
+        click.echo("No cspec/issues directory found. Run 'cspec init' first.")
         sys.exit(1)
 
     issues = list(issues_dir.glob("ISSUE-*.md"))
@@ -854,10 +854,10 @@ def show_issue(issue_id: str):
 
     ISSUE_ID can be the full ID (ISSUE-001) or just the number (001 or 1).
     """
-    issues_dir = Path.cwd() / "specs" / "issues"
+    issues_dir = Path.cwd() / "cspec" / "issues"
 
     if not issues_dir.exists():
-        click.echo("No specs/issues directory found. Run 'cspec init' first.")
+        click.echo("No cspec/issues directory found. Run 'cspec init' first.")
         sys.exit(1)
 
     # Normalize the issue ID
