@@ -1,70 +1,102 @@
 ---
-checkpoint: chk-research-phase-001
-created: 2025-12-17T10:39:20-03:00
-anchor: research-phase-proposal-complete
+checkpoint: chk-research-phase
+created: 2025-12-17T12:42:11-03:00
+anchor: issue-004-complete
 ---
 
 ## Problem
 
-The spec-driven methodology defines what context is required per issue nature but lacks a formalized workflow for how to gather that context. This gap causes ad-hoc research, inconsistent context quality, and missing information discovered late in development.
+The cspec methodology defines **what context is required** per issue nature (in `issue-validation.md`), but lacks a formalized workflow for **how to gather that context**. This leads to ad-hoc research approaches, inconsistent context quality, and missing information discovered late in spec/implementation.
 
 ## Session Intent
 
-Design and document a formal Research Phase that sits between Issue and Spec phases. The phase should route to appropriate research workflows based on issue nature, run workflows in parallel when independent, and validate research completeness before proceeding.
+Implement the Research Phase as defined in `docs/proposals/research-phase-proposal.md`. The Research Phase sits between Issue (validated) and Spec, providing the contextual foundation needed to design solutions:
+
+```
+Issue (validated) → Research → Spec → Implementation → Verification
+```
 
 ## Essential Information
 
 ### Decisions
 
-- Research is a **formal phase** in the methodology (not embedded in Issue phase)
-- Orchestrator will be a **skill** (interactive mode for testing)
-- Routing mode is **semi-auto** (propose workflows, human confirms)
-- Scope changes trigger **fresh research** (no incremental updates - coding agents make restarts cheap)
-- All tools must be **migrated into this project** (self-contained)
-- Research outputs are **co-located with issues** (`specs/issues/ISSUE-XXX/research/`)
+- **Multiple issues**: Work split into 6 separate issues for better tracking
+- **Impact**: All issues are `additive` (new features, no breaking changes)
+- **Version**: All issues are `minor` version increments
+- **Execution mode**: Semi-auto (propose workflows, human confirms) for alpha
+- **Self-contained**: All tools must live in project's `.claude/` directory
+- **Testing**: Accept structural validation without formal smoke tests (ISSUE-004)
 
 ### Technical Context
 
-- Project: coihuin-spec (spec-driven development methodology + CLI)
-- CLI: `cspec` (Python, uv)
-- Existing global tools to migrate: `rca-analysis` skill, `snapshot-codebase` command, `web-research` command, `investigate` command
-- New tools to build: `research-orchestrator` skill, `profiling-analysis`, `usage-analysis`, `data-analysis`, `api-exploration`
+- Project: coihuin-spec (spec-driven development methodology)
+- CLI tool: `cspec` (Python, in `tooling/cspec/`)
+- Issue tracking: beads (`bd` commands) + cspec issues
+- Slash commands: `.claude/commands/`
+- Skills: `.claude/skills/`
+- Agents: `.claude/agents/`
+- Agent configs: Project CLAUDE.md + AGENTS.md
 
 ### Play-By-Play
 
-- Catch-up → Created STATUS.md quick reference → Complete
-- Brainstorm → Identified Research Phase gap between Issue and Spec → Complete
-- Design → Mapped all 11 natures to research workflows → Complete
-- Design → Defined orchestration model (6-step flow) → Complete
-- Design → Created validation rubric (general + nature-specific) → Complete
-- Design → Defined "run fresh" philosophy for scope changes → Complete
-- Documentation → Created comprehensive proposal at `docs/research-phase-proposal.md` → Complete
+- Read proposal → Understood scope and requirements
+- Created 6 issues → ISSUE-004 through ISSUE-009
+- Created dependency graph → `cspec/issues/DEPENDENCY-GRAPH.md`
+- Validated ISSUE-004 → Passed with warnings, updated to `ready`
+- **Implemented ISSUE-004** → Migrated 3 tools (rca-analysis, web-research, snapshot-researcher)
+- Junior implementer missed snapshot-researcher agent → Fixed manually
+- Fixed web-research.md issues → Added agent invocation, date command, output clarity
+- Multi-agent review → Completeness, correctness, acceptance criteria, documentation all passed
 
 ### Artifact Trail
 
 | File | Status | Key Change |
 |------|--------|------------|
-| `STATUS.md` | created | Quick reference card for project state |
-| `docs/research-phase-proposal.md` | created | Full Research Phase proposal with migration plan |
+| `docs/proposals/research-phase-proposal.md` | exists | Source proposal defining Research Phase |
+| `cspec/issues/ISSUE-004/ISSUE-004.md` | created | Migrate existing tools (ready) |
+| `cspec/issues/ISSUE-005/ISSUE-005.md` | created | Build research-orchestrator skill (draft) |
+| `cspec/issues/ISSUE-006/ISSUE-006.md` | created | Build snapshot commands (draft) |
+| `cspec/issues/ISSUE-007/ISSUE-007.md` | created | Build analysis commands (draft) |
+| `cspec/issues/ISSUE-008/ISSUE-008.md` | created | Build research-validate command (draft) |
+| `cspec/issues/ISSUE-009/ISSUE-009.md` | created | Update documentation (draft) |
+| `cspec/issues/DEPENDENCY-GRAPH.md` | created | Mermaid diagram of issue dependencies |
+| `.claude/skills/rca-analysis/` | **created** | RCA skill (SKILL.md + references/) |
+| `.claude/commands/web-research.md` | **created** | External research command |
+| `.claude/agents/snapshot-researcher.md` | **created** | Codebase exploration agent |
+| `docs/MIGRATION-NOTES.md` | **created** | Migration documentation |
 
 ### Current State
 
-- Research Phase fully designed and documented
-- Proposal ready for human review
-- No implementation started yet
-- All beads closed (clean slate)
+**ISSUE-004 complete** (pending commit). 5 issues remaining:
+
+| Issue | Title | Status | Depends On |
+|-------|-------|--------|------------|
+| ISSUE-004 | Migrate existing research tools | **complete** | — |
+| ISSUE-005 | Build research-orchestrator skill | draft | 004, 006, 007 |
+| ISSUE-006 | Build snapshot research commands | draft | 004 ✓ |
+| ISSUE-007 | Build analysis research commands | draft | — |
+| ISSUE-008 | Build /cspec:research-validate command | draft | 005 |
+| ISSUE-009 | Update documentation for Research Phase | draft | 004-008 |
+
+**Dependency graph** (004 unblocked):
+```
+ISSUE-004 ✓─┬──> ISSUE-006 ──┐
+            │                ├──> ISSUE-005 ──> ISSUE-008
+ISSUE-007 ──┴────────────────┘                     │
+                                                   v
+                                            ISSUE-009
+```
 
 ### Next Actions
 
-1. Human reviews `docs/research-phase-proposal.md`
-2. After approval, begin Phase 1 implementation:
-   - Migrate existing tools into project
-   - Build `research-orchestrator` skill (semi-auto mode)
-   - Implement for Bug (RCA) and Enhancement (snapshot) first
-   - Test on real issues
+1. **Commit ISSUE-004 changes** (awaiting user approval)
+2. **Begin ISSUE-007** (analysis commands) - no blockers, parallel track
+3. **Begin ISSUE-006** (snapshot commands) - 004 now unblocked
+4. Validate remaining issues (005-009) to `ready` status
 
 ## User Rules
 
-- Never commit without explicit user request
-- No time estimates in plans
-- Use `bd` for issue tracking
+- NEVER commit changes without user approval
+- NEVER include time estimations in plans
+- Use `bd` commands for tracking (beads workflow)
+- Run `TZ='America/Santiago' date` for date-related tasks

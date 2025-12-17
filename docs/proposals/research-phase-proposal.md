@@ -41,39 +41,40 @@ Each issue nature determines which research workflow(s) to execute.
 
 ### Primary Mapping
 
+These mappings are **starting heuristics**, not rigid rules. Humans may override during the Propose step, and overrides are tracked to tune mappings over time.
+
 | Nature | Primary Workflow | Secondary Workflow | Parallel? |
 |--------|------------------|-------------------|-----------|
 | **Bug** | `rca-analysis` | — | N/A |
 | **Hotfix** | `rca-analysis` (fast mode) | — | N/A |
-| **Feature** | `snapshot-codebase` (integration points) | `web-research` (patterns/prior art) | Yes |
-| **Enhancement** | `snapshot-codebase` (current behavior) | — | N/A |
-| **Refactor** | `snapshot-codebase` (architecture) | — | N/A |
-| **Optimization** | `snapshot-codebase` (hot paths) | `profiling-analysis` | Yes |
+| **Feature** | `snapshot-integration-points` | `web-research` (patterns/prior art) | Yes |
+| **Enhancement** | `snapshot-current-behavior` | — | N/A |
+| **Refactor** | `snapshot-architecture` | `dependency-analysis` | Yes |
+| **Optimization** | `snapshot-hot-paths` | `profiling-analysis` | Yes |
 | **Security** | `rca-analysis` (attack-focused) | `web-research` (CVE/mitigation) | Yes |
-| **Migration** | `snapshot-codebase` (current state) | `web-research` (target tech) | Yes |
-| **Configuration** | `snapshot-codebase` (config layer) | — | N/A |
+| **Migration** | `snapshot-current-state` | `web-research` (target tech), `dependency-analysis` | Yes |
+| **Configuration** | `snapshot-config-layer` | — | N/A |
 | **Deprecation** | `usage-analysis` | — | N/A |
 | **Removal** | Reference deprecation research | — | N/A |
 
-### Workflow Descriptions
+### All Workflows
 
-#### Existing Workflows (to migrate)
-
-| Workflow | Current Location | Purpose |
-|----------|------------------|---------|
-| `rca-analysis` | Global skill | Root cause analysis for bugs/security issues |
-| `snapshot-codebase` | Global command | Point-in-time codebase research |
-| `web-research` | Global command | External documentation and patterns |
-| `snapshot-researcher` | Global agent | Sub-agent for parallel codebase exploration |
-
-#### New Workflows (to build)
-
-| Workflow | Purpose | When Needed |
-|----------|---------|-------------|
-| `profiling-analysis` | Collect/analyze performance metrics, identify bottlenecks | Optimization |
-| `usage-analysis` | Find all consumers/usages of a symbol, API, or feature | Deprecation, Removal, Refactor impact |
-| `data-analysis` | Query and analyze existing data shape, volume, patterns | Migration (data), Feature (data-driven) |
-| `api-exploration` | Probe external APIs, document contracts, test responses | External integrations |
+| Workflow | Type | Status | Purpose |
+|----------|------|--------|---------|
+| `rca-analysis` | Skill | Migrate | Root cause analysis for bugs/security issues |
+| `web-research` | Command | Migrate | External documentation and patterns |
+| `snapshot-researcher` | Agent | Migrate | Sub-agent for parallel codebase exploration |
+| `snapshot-integration-points` | Command | Build | Map where new code connects to existing system |
+| `snapshot-current-behavior` | Command | Build | Document existing behavior before modification |
+| `snapshot-architecture` | Command | Build | Map system structure, components, boundaries |
+| `snapshot-hot-paths` | Command | Build | Identify performance-critical code paths |
+| `snapshot-config-layer` | Command | Build | Document configuration system and options |
+| `snapshot-current-state` | Command | Build | Full state documentation for migration source |
+| `profiling-analysis` | Command | Build | Collect/analyze performance metrics |
+| `usage-analysis` | Command | Build | Find all consumers of a symbol, API, or feature |
+| `dependency-analysis` | Command | Build | Map code and package dependency graphs |
+| `research-orchestrator` | Skill | Build | Coordinates entire research phase |
+| `/cspec:research-validate` | Slash Cmd | Build | Manual validation rubric check (alpha) |
 
 ---
 
@@ -95,10 +96,11 @@ The Research Orchestrator coordinates the entire research phase.
 │                              │                                   │
 │                              ▼                                   │
 │  ┌────────────────────────────────────────────────────────────┐  │
-│  │ 2. PROPOSE                                                 │  │
-│  │    - Map nature → workflow(s)                              │  │
-│  │    - Present to human for confirmation                     │  │
-│  │    - Human adjusts if needed                               │  │
+│  │ 2. PROPOSE (conversational)                                │  │
+│  │    - Map nature → workflow(s) from heuristics              │  │
+│  │    - Present: "I'll run X and Y for this issue"            │  │
+│  │    - Human: "Yes" / "Skip Y" / "Also run Z"                │  │
+│  │    - Track overrides to tune mappings over time            │  │
 │  └────────────────────────────────────────────────────────────┘  │
 │                              │                                   │
 │                              ▼                                   │
@@ -135,17 +137,15 @@ The Research Orchestrator coordinates the entire research phase.
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### Execution Modes
+### Execution Mode
 
-| Mode | Description | When to Use |
-|------|-------------|-------------|
-| **Semi-auto** (current) | Propose workflows, human confirms | Testing, tuning, building trust |
-| **Full-auto** (future) | Dispatch based on nature, no confirmation | After validation in production |
-| **Headless** (future) | Run without interaction, report results | CI/CD integration |
+**Semi-auto**: Propose workflows, human confirms. Used for testing, tuning, and building trust.
 
 ---
 
 ## Research Validation
+
+> **Alpha Note**: During alpha, validation is exposed as `/cspec:research-validate <issue-id>` slash command. Manual invocation allows human oversight to detect system smells. Boundaries for "enough research" will be refined through real usage, not predetermined rules.
 
 ### General Rubric (All Natures)
 
@@ -192,160 +192,33 @@ cspec/issues/ISSUE-001/
 └── spec/                           # (next phase - specification artifacts)
 ```
 
-### Report Format
+### Report Format (`_report.md`)
 
-The merged `_report.md` follows this structure:
+**Frontmatter**: issue, nature, date, git_commit, workflows_executed, validation_status
 
-```markdown
----
-issue: ISSUE-001
-nature: <nature>
-date: <ISO 8601>
-git_commit: <hash>
-workflows_executed:
-  - <workflow-1>
-  - <workflow-2>
-validation_status: passed | warnings | failed
----
-
-# Research Report: <issue title>
-
-## Summary
-<!-- 2-3 paragraphs synthesizing all findings -->
-
-## Findings by Workflow
-
-### <Workflow Name>
-<!-- Key findings from this workflow -->
-<!-- Link to full artifact: [Full Report](./snapshot-*.md) -->
-
-## Consolidated Code References
-<!-- Key files across all workflows -->
-
-## Open Questions
-<!-- Uncertainties flagged across all workflows -->
-
-## Validation Results
-
-### General Rubric
-- [ ] Completeness: ...
-- [ ] Evidence: ...
-- [ ] Relevance: ...
-- [ ] Uncertainty: ...
-- [ ] Actionability: ...
-
-### Nature-Specific (<nature>)
-- [ ] <check 1>: ...
-- [ ] <check 2>: ...
-
-## Recommendation
-<!-- Ready to proceed to Spec? Or needs more research? -->
-```
+**Sections**: Summary → Findings by Workflow → Code References → Open Questions → Validation Results → Recommendation
 
 ---
 
 ## Scope Change Policy: Run Fresh
 
-### Philosophy
+With agents, `Cost of incremental complexity > Cost of fresh restart`.
 
-Traditional development resists restarts because human labor is expensive. With coding agents, the equation flips:
-
-```
-Cost of incremental complexity > Cost of fresh restart
-```
-
-### The Restart Protocol
-
-When scope changes mid-development:
-
-```
-Scope changed?
-     │
-     ▼
-┌─────────────────┐
-│  git restore    │  ← Return to clean state (commit before change)
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  Update Issue   │  ← New scope, re-validate
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  Fresh Research │  ← No stale context, no merge complexity
-└────────┬────────┘
-         │
-         ▼
-    Continue flow
-```
-
-### Benefits
-
-- No incremental research logic needed
-- No "merge old + new findings" complexity
-- No stale context pollution
-- Always working from validated, coherent state
-- Simpler implementation, easier to reason about
+**When scope changes**: `git restore` → Update issue → Fresh research → Continue. No merge logic, no stale context.
 
 ---
 
 ## Migration Plan
 
-This project must be self-contained. The following global tools need to be migrated into this repository.
-
-### Tools to Migrate
-
-| Tool | Current Location | Target Location | Type |
-|------|------------------|-----------------|------|
-| `rca-analysis` | `~/.claude/skills/rca-analysis.md` | `.claude/skills/rca-analysis.md` | Skill |
-| `snapshot-codebase` | `~/.claude/commands/snapshot-codebase.md` | `.claude/commands/snapshot-codebase.md` | Command |
-| `web-research` | `~/.claude/commands/web-research.md` | `.claude/commands/web-research.md` | Command |
-| `investigate` | `~/.claude/commands/investigate.md` | `.claude/commands/investigate.md` | Command |
-| `snapshot-researcher` | Built-in agent | Document in AGENTS.md | Agent reference |
-
-### Migration Steps
-
-1. **Copy tools** - Bring global tools into project `.claude/` directory
-2. **Adapt paths** - Update any hardcoded paths to be project-relative
-3. **Update AGENTS.md** - Document all available tools and their usage
-4. **Test** - Verify tools work from project context
-5. **Iterate** - Evolve tools within this project, feed improvements back to global if desired
-
-### New Tools to Build
-
-| Tool | Type | Priority | Description |
-|------|------|----------|-------------|
-| `research-orchestrator` | Skill | P1 | Coordinates research phase |
-| `profiling-analysis` | Skill/Command | P2 | Performance metrics collection |
-| `usage-analysis` | Skill/Command | P2 | Find all consumers of a symbol/API |
-| `data-analysis` | Skill/Command | P3 | Query and analyze data patterns |
-| `api-exploration` | Skill/Command | P3 | External API documentation |
+This project must be self-contained. Migrate global tools (marked "Migrate" in All Workflows table) into `.claude/` directory. Test and iterate.
 
 ---
 
 ## CLI Integration
 
-### Proposed Commands
-
 ```bash
-# Dispatch research for an issue (invokes skill in semi-auto mode)
-cspec research ISSUE-001
-
-# Validate research completeness
-cspec research-validate ISSUE-001
-
-# List research artifacts for an issue
-cspec research-list ISSUE-001
-```
-
-### Skill Invocation
-
-The `cspec research` command would invoke the `research-orchestrator` skill:
-
-```bash
-cspec research ISSUE-001
-# Equivalent to triggering skill with issue context
+cspec research ISSUE-001        # Dispatch research (invokes orchestrator skill)
+/cspec:research-validate ISSUE-001  # Manual validation (alpha, human oversight)
 ```
 
 ---
@@ -376,49 +249,20 @@ With the Research Phase formalized:
 
 ### Quality Gates
 
-| Gate | From → To | Criteria |
-|------|-----------|----------|
-| Issue Gate | Issue → Research | Issue validated, status `ready` |
-| Research Gate | Research → Spec | Research report complete, validation passed, human approved |
-| Spec Gate | Spec → Implementation | Specs reviewed, validation hooks defined |
-| Implementation Gate | Implementation → Verification | All hooks pass, code complete |
-| Verification Gate | Verification → Done | Human sign-off, artifacts updated |
-
----
-
-## Open Questions for Future Iteration
-
-1. **Research caching** - Can we reuse research across similar issues?
-2. **Research templates** - Pre-filled prompts per nature to speed up workflow?
-3. **Metrics** - Track research time, iteration count, correlation with spec quality?
-4. **Cross-issue research** - When one issue's research informs another?
+| Gate | Criteria |
+|------|----------|
+| Issue → Research | Issue validated |
+| Research → Spec | Report complete, validation passed, human approved |
+| Spec → Implement | Specs reviewed, hooks defined |
+| Implement → Verify | Hooks pass, code complete |
+| Verify → Done | Human sign-off |
 
 ---
 
 ## Implementation Roadmap
 
-### Phase 1: Foundation
 - [ ] Migrate existing tools into project
 - [ ] Build `research-orchestrator` skill (semi-auto mode)
 - [ ] Implement for Bug (RCA) and Enhancement (snapshot) natures
 - [ ] Test on real issues
 
-### Phase 2: Expansion
-- [ ] Add remaining nature mappings
-- [ ] Build `usage-analysis` tool
-- [ ] Build `profiling-analysis` tool
-- [ ] Refine validation rubric based on usage
-
-### Phase 3: Automation
-- [ ] Add full-auto mode to orchestrator
-- [ ] CLI integration (`cspec research`)
-- [ ] Headless mode for CI/CD
-
----
-
-## References
-
-- [Methodology](./methodology.md) - Overall development flow
-- [Issue Validation](./issue-validation.md) - Context requirements by nature
-- [Change Taxonomy](./change-taxonomy-system.md) - Nature classification
-- [Spec-Driven Principle](./spec-driven-principle.md) - Philosophy of specs as source of truth
