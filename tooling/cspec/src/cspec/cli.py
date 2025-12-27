@@ -12,6 +12,7 @@ import yaml
 PACKAGE_DIR = Path(__file__).parent
 COMMANDS_DIR = PACKAGE_DIR / "commands" / "cspec"
 TEMPLATES_DIR = PACKAGE_DIR / "templates"
+ISSUE_TEMPLATES_DIR = PACKAGE_DIR / "templates" / "issue_templates"
 
 # Reference to add to CLAUDE.md
 AGENTS_REFERENCE = "\nSee [AGENTS.md](AGENTS.md) for cspec workflow and project context.\n"
@@ -53,6 +54,26 @@ def install_commands(project_root: Path, force: bool = False) -> int:
                 shutil.copy(cmd_file, dest)
                 click.echo(f"  ✓ Installed /{cmd_file.stem} (cspec:{cmd_file.stem})")
                 installed += 1
+    return installed
+
+
+def install_issue_templates(project_root: Path, force: bool = False) -> int:
+    """Install GitHub issue templates to project. Returns count of installed templates."""
+    templates_dest = project_root / ".github" / "ISSUE_TEMPLATE"
+    templates_dest.mkdir(parents=True, exist_ok=True)
+
+    installed = 0
+    if ISSUE_TEMPLATES_DIR.exists():
+        for template_file in ISSUE_TEMPLATES_DIR.glob("*.yml"):
+            dest = templates_dest / template_file.name
+            if dest.exists() and not force:
+                click.echo(f"  · {template_file.stem} template exists (use --force to overwrite)")
+            else:
+                shutil.copy(template_file, dest)
+                click.echo(f"  ✓ Installed {template_file.stem} issue template")
+                installed += 1
+    else:
+        click.echo("  ! Issue templates not found in package")
     return installed
 
 
@@ -182,6 +203,7 @@ def init(force: bool):
         project_root / "cspec" / "specs",
         project_root / "cspec" / "work",
         project_root / ".claude" / "commands" / "cspec",
+        project_root / ".github" / "ISSUE_TEMPLATE",
     ]
 
     click.echo("Initializing project...\n")
@@ -195,9 +217,15 @@ def init(force: bool):
             click.echo(f"  · {d.relative_to(project_root)}/ exists")
 
     # Install slash commands
+    click.echo("\nSlash Commands:")
     install_commands(project_root, force)
 
+    # Install GitHub issue templates
+    click.echo("\nGitHub Issue Templates:")
+    install_issue_templates(project_root, force)
+
     # Install AGENTS.md template
+    click.echo("\nAgent Configuration:")
     install_agents_md(project_root, force)
 
     # Update CLAUDE.md with reference to AGENTS.md (if it exists)
@@ -205,12 +233,16 @@ def init(force: bool):
 
     click.echo("\n✓ Initialization complete!")
     click.echo("\nDirectory structure:")
-    click.echo("  cspec/specs/  - Permanent feature specs (source of truth)")
-    click.echo("  cspec/work/   - Ephemeral work directories")
-    click.echo("\nNext steps:")
-    click.echo("  1. Start work: /cspec:work-start <slug> <description>")
-    click.echo("  2. Write specs: /cspec:spec-write <feature>")
-    click.echo("\nNote: Slash commands are namespaced as cspec:<command>")
+    click.echo("  cspec/specs/         - Permanent feature specs (source of truth)")
+    click.echo("  cspec/work/          - Ephemeral work directories")
+    click.echo("  .github/ISSUE_TEMPLATE/ - GitHub issue templates (11 natures)")
+    click.echo("\nWorkflow:")
+    click.echo("  1. Create issue on GitHub (use templates)")
+    click.echo("  2. /cspec:issue-start <github-url>  - Import and classify")
+    click.echo("  3. /cspec:proposal-write            - Draft proposal")
+    click.echo("  4. /cspec:spec-write                - Write spec")
+    click.echo("  5. /cspec:plan-write                - Create impl plan")
+    click.echo("  6. /cspec:work-complete             - Merge spec, cleanup")
 
 
 @main.command()
@@ -218,7 +250,7 @@ def init(force: bool):
 def update(force: bool):
     """Update cspec resources to latest version.
 
-    Re-installs slash commands and refreshes AGENTS.md from the cspec package.
+    Re-installs slash commands, GitHub issue templates, and refreshes AGENTS.md.
     AGENTS.md is merged to preserve the PROJECT CONTEXT section.
     """
     project_root = Path.cwd()
@@ -232,13 +264,17 @@ def update(force: bool):
 
     # Update slash commands
     click.echo("Slash Commands:")
-    installed = install_commands(project_root, force=force)
+    commands_installed = install_commands(project_root, force=force)
+
+    # Update GitHub issue templates
+    click.echo("\nGitHub Issue Templates:")
+    templates_installed = install_issue_templates(project_root, force=force)
 
     # Update AGENTS.md
     click.echo("\nAGENTS.md:")
     update_agents_md(project_root, force=force)
 
-    click.echo(f"\n✓ Update complete ({installed} command(s) refreshed)")
+    click.echo(f"\n✓ Update complete ({commands_installed} command(s), {templates_installed} template(s) refreshed)")
 
 
 

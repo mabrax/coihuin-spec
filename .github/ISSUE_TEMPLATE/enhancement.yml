@@ -1,0 +1,73 @@
+name: Enhancement
+description: Improve existing functionality
+labels: ["enhancement"]
+body:
+  - type: dropdown
+    id: impact
+    attributes:
+      label: Impact
+      description: How does this affect consumers?
+      options:
+        - invisible (internal improvement, no API changes)
+        - additive (new options/capabilities, backward compatible)
+        - breaking (requires consumer changes)
+    validations:
+      required: true
+
+  - type: textarea
+    id: current-behavior
+    attributes:
+      label: Current Behavior
+      description: How does the feature work today?
+      placeholder: Currently, when you...
+    validations:
+      required: true
+
+  - type: textarea
+    id: desired-behavior
+    attributes:
+      label: Desired Behavior
+      description: How should it work instead?
+      placeholder: It should...
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope-in
+    attributes:
+      label: In Scope
+      description: What specific changes are included?
+      placeholder: |
+        - [ ] Change 1
+        - [ ] Change 2
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope-out
+    attributes:
+      label: Out of Scope
+      description: What is explicitly excluded?
+      placeholder: |
+        - Excluded item 1
+    validations:
+      required: false
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: How do we know this is done?
+      placeholder: |
+        - [ ] Criterion 1
+        - [ ] Criterion 2
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Additional context, constraints, or considerations
+    validations:
+      required: false

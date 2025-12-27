@@ -1,0 +1,82 @@
+name: Security
+description: Security vulnerability or hardening
+labels: ["security"]
+body:
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: How severe is this security issue?
+      options:
+        - critical (active exploitation, data breach risk)
+        - high (exploitable vulnerability, no active exploitation)
+        - medium (vulnerability with mitigating factors)
+        - low (hardening, defense in depth)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: Security Type
+      description: What category of security issue?
+      options:
+        - vulnerability (fix existing flaw)
+        - hardening (add defensive measure)
+        - compliance (meet security standard)
+        - dependency (update vulnerable dependency)
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Security Issue Description
+      description: What is the security issue? (Be careful with sensitive details)
+      placeholder: |
+        The X component is vulnerable to...
+        CVE (if applicable):
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Potential Impact
+      description: What could happen if exploited?
+      placeholder: |
+        An attacker could...
+        Affected data/systems:
+    validations:
+      required: true
+
+  - type: textarea
+    id: remediation
+    attributes:
+      label: Remediation
+      description: How should this be fixed?
+      placeholder: |
+        - [ ] Sanitize input
+        - [ ] Update dependency to version X
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: How do we know this is fixed?
+      placeholder: |
+        - [ ] Vulnerability no longer exploitable
+        - [ ] Security test added
+        - [ ] No regression
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Additional context (avoid sensitive details in public issues)
+    validations:
+      required: false

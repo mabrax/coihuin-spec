@@ -1,0 +1,77 @@
+name: Bug
+description: Something isn't working as expected
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: How severe is this bug?
+      options:
+        - critical (system down, data loss, security breach)
+        - high (major feature broken, no workaround)
+        - medium (feature broken, workaround exists)
+        - low (minor issue, cosmetic)
+    validations:
+      required: true
+
+  - type: textarea
+    id: current-behavior
+    attributes:
+      label: Current Behavior
+      description: What is happening?
+      placeholder: When I do X, Y happens...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected Behavior
+      description: What should happen instead?
+      placeholder: It should do Z...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: How can we reproduce this?
+      placeholder: |
+        1. Go to...
+        2. Click on...
+        3. Observe...
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Where does this happen?
+      placeholder: |
+        - OS:
+        - Version:
+        - Browser (if applicable):
+    validations:
+      required: false
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: How do we know this is fixed?
+      placeholder: |
+        - [ ] Bug no longer reproduces
+        - [ ] Regression test added
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Additional context, logs, screenshots
+    validations:
+      required: false

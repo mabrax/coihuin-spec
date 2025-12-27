@@ -1,0 +1,83 @@
+name: Deprecation
+description: Mark functionality as deprecated
+labels: ["deprecation"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What is Being Deprecated
+      description: What functionality is being deprecated?
+      placeholder: |
+        - API endpoint: /v1/users
+        - Function: getUserById()
+        - Feature: Legacy export
+    validations:
+      required: true
+
+  - type: textarea
+    id: reason
+    attributes:
+      label: Reason for Deprecation
+      description: Why is this being deprecated?
+      placeholder: |
+        This is being deprecated because...
+        Replaced by:
+    validations:
+      required: true
+
+  - type: textarea
+    id: migration-path
+    attributes:
+      label: Migration Path
+      description: How should consumers migrate?
+      placeholder: |
+        Instead of X, use Y:
+        - Old: getUserById(id)
+        - New: users.get(id)
+    validations:
+      required: true
+
+  - type: textarea
+    id: timeline
+    attributes:
+      label: Deprecation Timeline
+      description: When will deprecation warnings start and when will removal happen?
+      placeholder: |
+        - Deprecation warning: v2.0 (this release)
+        - Removal: v3.0 (next major)
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: What needs to be done for this deprecation?
+      placeholder: |
+        - [ ] Add deprecation warnings
+        - [ ] Update documentation
+        - [ ] Notify consumers
+        - [ ] Create migration guide
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: How do we know deprecation is properly communicated?
+      placeholder: |
+        - [ ] Deprecation warnings in code
+        - [ ] Documentation updated
+        - [ ] Migration guide published
+        - [ ] Consumers notified
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Additional context, affected consumers
+    validations:
+      required: false

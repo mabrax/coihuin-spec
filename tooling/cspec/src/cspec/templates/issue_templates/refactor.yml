@@ -1,0 +1,82 @@
+name: Refactor
+description: Restructure code without changing behavior
+labels: ["refactor"]
+body:
+  - type: dropdown
+    id: impact
+    attributes:
+      label: Impact
+      description: Does this affect consumers?
+      options:
+        - invisible (internal only, no API changes)
+        - additive (new APIs added, old ones remain)
+        - breaking (API changes required)
+    validations:
+      required: true
+
+  - type: textarea
+    id: current-state
+    attributes:
+      label: Current State
+      description: What does the code look like now? What's wrong with it?
+      placeholder: |
+        The current implementation...
+        Problems:
+        - Hard to test
+        - Duplicated logic
+    validations:
+      required: true
+
+  - type: textarea
+    id: target-state
+    attributes:
+      label: Target State
+      description: What should the code look like after?
+      placeholder: |
+        After refactoring:
+        - Single responsibility
+        - Clear interfaces
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope-in
+    attributes:
+      label: In Scope
+      description: What specific changes are included?
+      placeholder: |
+        - [ ] Extract X into separate module
+        - [ ] Rename Y for clarity
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope-out
+    attributes:
+      label: Out of Scope
+      description: What is explicitly excluded?
+      placeholder: |
+        - No behavior changes
+        - No new features
+    validations:
+      required: false
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: How do we know this is done?
+      placeholder: |
+        - [ ] All existing tests pass
+        - [ ] No behavior changes
+        - [ ] Code meets target architecture
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Additional context, architectural diagrams
+    validations:
+      required: false

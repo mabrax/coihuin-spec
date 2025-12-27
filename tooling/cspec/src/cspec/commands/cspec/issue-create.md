@@ -1,142 +1,167 @@
 ---
-description: Create a new issue with proper YAML frontmatter structure
-argument-hint: <title or description of what you want to create>
+description: Create a GitHub issue using cspec templates
+argument-hint: [optional: brief description of what you want to create]
 ---
 
-# Issue Creation Task
+# Create GitHub Issue
 
-You are creating a new issue following the spec-driven development methodology.
+You are creating a GitHub issue using the cspec methodology. The issue will be created on GitHub for tracking, but you'll collect all information here in the TUI.
 
-## User Request
+## User Input (if provided)
 
 $ARGUMENTS
 
-## Reference Documentation
-
-Use these project documents as your source of truth:
-
-- **Template**: @docs/issue-template.md
-- **Taxonomy**: @docs/change-taxonomy-system.md
-- **Validation Rules**: @docs/issue-validation.md
-
 ## Process
 
-### Step 1: Gather Information
+### Step 1: Determine Nature
 
-Ask the user clarifying questions to determine:
+Ask the user which type of issue they're creating:
 
-1. **Title**: Clear, descriptive (max 100 chars)
-2. **Nature**: Which type of change?
-   - `feature` - New capability
-   - `enhancement` - Improvement to existing
-   - `bug` - Defective behavior correction
-   - `refactor` - Code restructuring, no behavior change
-   - `optimization` - Performance improvement
-   - `security` - Vulnerability fix
-   - `hotfix` - Urgent production fix
-   - `migration` - Data/infrastructure move
-   - `configuration` - Settings change
-   - `deprecation` - Mark for future removal
-   - `removal` - Eliminate deprecated functionality
+| Nature | Description |
+|--------|-------------|
+| `feature` | New functionality that doesn't exist |
+| `enhancement` | Improve existing functionality |
+| `bug` | Something is broken |
+| `refactor` | Restructure code, no behavior change |
+| `optimization` | Improve performance/resources |
+| `security` | Vulnerability or hardening |
+| `hotfix` | Urgent production fix |
+| `migration` | Data or system migration |
+| `configuration` | Settings/config change |
+| `deprecation` | Mark for future removal |
+| `removal` | Remove deprecated functionality |
 
-3. **Impact**: Consumer impact level
-   - `breaking` - Consumers must change (→ major version)
-   - `additive` - New surface area, existing unchanged (→ minor version)
-   - `invisible` - No external change (→ patch version)
+### Step 2: Collect Fields Based on Nature
 
-4. **Problem/Motivation**: Why does this matter?
-5. **Scope**: What's in and out of scope?
-6. **Acceptance Criteria**: How do we know it's done?
-7. **Dependencies**: Does this depend on or block other issues?
+Each nature has specific required fields. Collect them conversationally.
 
-### Step 2: Determine Required Context
+#### For `feature`:
+- **Impact**: breaking / additive (dropdown becomes conversation)
+- **Problem**: What problem does this solve?
+- **In Scope**: Specific deliverables (checklist)
+- **Out of Scope**: Explicitly excluded (optional)
+- **Acceptance Criteria**: How do we know it's done?
 
-Based on the nature, identify what context documents are required:
+#### For `enhancement`:
+- **Impact**: invisible / additive / breaking
+- **Current Behavior**: How does it work now?
+- **Desired Behavior**: How should it work?
+- **In Scope**: Specific changes
+- **Acceptance Criteria**: How do we know it's done?
 
-| Nature | Required Context |
-|--------|------------------|
-| bug | RCA document |
-| feature | Problem statement |
-| enhancement | Current behavior reference, delta description |
-| refactor | Architecture scope, behavioral equivalence statement |
-| optimization | Baseline metrics, target metrics, measurement method |
-| security | Vulnerability report, attack vector, severity, affected versions |
-| hotfix | Incident reference, impact assessment, rollback plan |
-| migration | Current state, target state, transformation rules, rollback plan |
-| configuration | Current config, new config, impact assessment |
-| deprecation | Sunset timeline, migration path, consumer impact |
-| removal | Deprecation reference, migration confirmation, impact assessment |
+#### For `bug`:
+- **Severity**: critical / high / medium / low
+- **Current Behavior**: What's happening?
+- **Expected Behavior**: What should happen?
+- **Steps to Reproduce**: How to replicate
+- **Environment**: OS, version, browser (optional)
+- **Acceptance Criteria**: How do we know it's fixed?
 
-### Step 3: Generate Issue ID
+#### For `refactor`:
+- **Impact**: invisible / additive / breaking
+- **Current State**: What's wrong with current code?
+- **Target State**: What should it look like after?
+- **In Scope**: Specific changes
+- **Acceptance Criteria**: Tests pass, no behavior change
 
-Check existing issues and generate the next sequential ID:
-- Pattern: `ISSUE-XXX` (zero-padded, e.g., ISSUE-001)
-- Look in `/cspec/issues/` directory for existing issues
+#### For `optimization`:
+- **Impact**: invisible / additive / breaking
+- **Type**: performance / memory / storage / network / cost
+- **Current Metrics**: What are current measurements?
+- **Target Metrics**: What should they be after?
+- **Approach**: How will we achieve this?
+- **Acceptance Criteria**: Metrics met, no regression
 
-### Step 4: Create the Issue File
+#### For `security`:
+- **Severity**: critical / high / medium / low
+- **Type**: vulnerability / hardening / compliance / dependency
+- **Description**: What's the security issue?
+- **Potential Impact**: What could happen if exploited?
+- **Remediation**: How to fix?
+- **Acceptance Criteria**: Vulnerability closed, test added
 
-Create the issue file at: `/cspec/issues/ISSUE-XXX.md`
+#### For `hotfix`:
+- **Severity**: P0 / P1 / P2
+- **Incident**: What's happening in production?
+- **Root Cause**: If known
+- **Proposed Fix**: How to fix?
+- **Rollback Plan**: How to rollback if fix fails?
+- **Acceptance Criteria**: Incident resolved, monitoring normal
 
-Use this structure:
+#### For `migration`:
+- **Type**: data / infrastructure / dependency / platform
+- **Impact**: invisible / additive / breaking
+- **From/To**: What are we migrating from and to?
+- **Scope**: What's included?
+- **Rollback Plan**: How to rollback?
+- **Validation Plan**: How to verify success?
+- **Acceptance Criteria**: Data migrated, no loss
 
-```markdown
----
-id: ISSUE-XXX
-title: "<title>"
-nature: <nature>
-impact: <impact>
-version: <major|minor|patch>
-status: draft
-created: <today's date YYYY-MM-DD>
-updated: <today's date YYYY-MM-DD>
+#### For `configuration`:
+- **Environment**: all / production / staging / development
+- **Impact**: invisible / additive / breaking
+- **Change**: What setting, current value, new value
+- **Reason**: Why is this needed?
+- **Rollback Plan**: How to revert?
+- **Acceptance Criteria**: Config applied, system stable
 
-context:
-  required: []
-  recommended: []
+#### For `deprecation`:
+- **What**: What's being deprecated?
+- **Reason**: Why deprecate?
+- **Migration Path**: How should consumers migrate?
+- **Timeline**: When warning, when removal?
+- **Scope**: What needs to be done?
+- **Acceptance Criteria**: Warnings in place, docs updated
 
-depends_on: []
-blocks: []
----
+#### For `removal`:
+- **What**: What's being removed?
+- **Deprecation Reference**: Link to deprecation issue
+- **Impact Assessment**: Who's affected?
+- **Scope**: What to remove?
+- **Verification**: How to verify nothing depends on it?
+- **Acceptance Criteria**: Removed, no references remain
 
-## Problem
+### Step 3: Generate Title
 
-<Why does this matter? What problem are we solving?>
+Based on the collected information, suggest a concise title (max 100 chars).
+Format: `<nature>: <brief description>`
 
-## Scope
+Example: `feature: Add CSV export for reports`
 
-### In Scope
+### Step 4: Format Issue Body
 
-- [ ] <Specific deliverable 1>
-- [ ] <Specific deliverable 2>
+Format the collected fields as markdown matching the GitHub template structure.
 
-### Out of Scope
+### Step 5: Create on GitHub
 
-- <Explicitly excluded item 1>
-- <Explicitly excluded item 2>
+Use `gh issue create` to create the issue:
 
-## Acceptance Criteria
+```bash
+gh issue create \
+  --title "<title>" \
+  --label "<nature>" \
+  --body "$(cat <<'EOF'
+<formatted body>
+EOF
+)"
+```
 
-- [ ] <Measurable criterion 1>
-- [ ] <Measurable criterion 2>
+Add additional labels based on:
+- `breaking-change` if impact is breaking
+- `urgent` if hotfix
+- Severity label for bugs/security (e.g., `severity:critical`)
+
+### Step 6: Report Success
+
+Output:
+- The GitHub issue URL
+- Issue number
+- Summary of what was created
+- Next step: `/cspec:issue-start <url>` to begin work
 
 ## Notes
 
-<Additional context, constraints, or considerations>
-```
-
-### Step 5: Inform About Next Steps
-
-After creating the issue, remind the user:
-
-1. The issue is in `draft` status
-2. Required context documents may need to be created based on nature
-3. Run `/issue-validate` to check if the issue is ready to move to `ready` status
-4. Once validated, the issue can proceed to spec creation
-
-## Output
-
-Provide the full path to the created issue file and summarize:
-- Issue ID and title
-- Classification (nature + impact → version)
-- Required context that still needs to be created (if any)
-- Next steps
+- If `gh` is not authenticated, guide the user to run `gh auth login`
+- If no repo is detected, ask user to confirm they're in a git repo with a GitHub remote
+- Keep the conversation natural - don't dump all questions at once
+- Use the user's initial input ($ARGUMENTS) to pre-fill fields if possible

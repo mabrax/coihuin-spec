@@ -1,0 +1,81 @@
+name: Configuration
+description: Configuration or settings change
+labels: ["configuration"]
+body:
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Environment
+      description: Which environment(s) are affected?
+      options:
+        - all environments
+        - production only
+        - staging only
+        - development only
+    validations:
+      required: true
+
+  - type: dropdown
+    id: impact
+    attributes:
+      label: Impact
+      description: Does this affect system behavior?
+      options:
+        - invisible (no behavior change)
+        - additive (enables new behavior)
+        - breaking (changes existing behavior)
+    validations:
+      required: true
+
+  - type: textarea
+    id: change
+    attributes:
+      label: Configuration Change
+      description: What configuration is being changed?
+      placeholder: |
+        Setting: MAX_CONNECTIONS
+        Current value: 100
+        New value: 200
+    validations:
+      required: true
+
+  - type: textarea
+    id: reason
+    attributes:
+      label: Reason
+      description: Why is this change needed?
+      placeholder: |
+        We need to increase connections because...
+    validations:
+      required: true
+
+  - type: textarea
+    id: rollback
+    attributes:
+      label: Rollback Plan
+      description: How do we rollback if the change causes issues?
+      placeholder: |
+        Revert setting to previous value:
+        Setting: MAX_CONNECTIONS = 100
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: How do we know the configuration is correct?
+      placeholder: |
+        - [ ] Configuration applied
+        - [ ] System behaves as expected
+        - [ ] No errors in logs
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Additional context, dependencies
+    validations:
+      required: false

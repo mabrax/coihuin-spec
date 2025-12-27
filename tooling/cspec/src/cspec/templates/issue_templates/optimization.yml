@@ -1,0 +1,82 @@
+name: Optimization
+description: Improve performance, reduce resource usage
+labels: ["optimization"]
+body:
+  - type: dropdown
+    id: impact
+    attributes:
+      label: Impact
+      description: Does this affect consumers?
+      options:
+        - invisible (internal optimization, no API changes)
+        - additive (new options for performance tuning)
+        - breaking (requires consumer changes)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: optimization-type
+    attributes:
+      label: Optimization Type
+      description: What are we optimizing?
+      options:
+        - performance (speed, latency)
+        - memory (RAM usage)
+        - storage (disk usage)
+        - network (bandwidth, requests)
+        - cost (cloud resources, API calls)
+    validations:
+      required: true
+
+  - type: textarea
+    id: current-metrics
+    attributes:
+      label: Current Metrics
+      description: What are the current measurements?
+      placeholder: |
+        - Response time: 500ms p95
+        - Memory usage: 2GB peak
+    validations:
+      required: true
+
+  - type: textarea
+    id: target-metrics
+    attributes:
+      label: Target Metrics
+      description: What should the measurements be after?
+      placeholder: |
+        - Response time: <200ms p95
+        - Memory usage: <1GB peak
+    validations:
+      required: true
+
+  - type: textarea
+    id: approach
+    attributes:
+      label: Approach
+      description: How will we achieve this optimization?
+      placeholder: |
+        - Add caching layer
+        - Optimize database queries
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: How do we know this is done?
+      placeholder: |
+        - [ ] Target metrics achieved
+        - [ ] No regression in functionality
+        - [ ] Benchmarks documented
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Profiling results, bottleneck analysis
+    validations:
+      required: false

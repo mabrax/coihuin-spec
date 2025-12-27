@@ -1,0 +1,96 @@
+name: Migration
+description: Data or system migration
+labels: ["migration"]
+body:
+  - type: dropdown
+    id: migration-type
+    attributes:
+      label: Migration Type
+      description: What are we migrating?
+      options:
+        - data (database, storage)
+        - infrastructure (servers, cloud)
+        - dependency (framework, library)
+        - platform (OS, runtime)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: impact
+    attributes:
+      label: Impact
+      description: Does this affect consumers?
+      options:
+        - invisible (seamless migration)
+        - additive (new endpoints/options during transition)
+        - breaking (requires consumer changes)
+    validations:
+      required: true
+
+  - type: textarea
+    id: from-to
+    attributes:
+      label: Migration Path
+      description: What are we migrating from and to?
+      placeholder: |
+        From: PostgreSQL 14
+        To: PostgreSQL 16
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: What is included in this migration?
+      placeholder: |
+        - [ ] Database schema
+        - [ ] Data migration scripts
+        - [ ] Application changes
+    validations:
+      required: true
+
+  - type: textarea
+    id: rollback
+    attributes:
+      label: Rollback Plan
+      description: How do we rollback if migration fails?
+      placeholder: |
+        1. Restore from backup
+        2. Revert application to version X
+        3. Point DNS back to old system
+    validations:
+      required: true
+
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation Plan
+      description: How do we verify the migration succeeded?
+      placeholder: |
+        - [ ] Data integrity checks
+        - [ ] Smoke tests
+        - [ ] Performance comparison
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: How do we know migration is complete?
+      placeholder: |
+        - [ ] All data migrated
+        - [ ] No data loss
+        - [ ] Performance meets targets
+        - [ ] Old system decommissioned
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Timeline, dependencies, coordination needs
+    validations:
+      required: false

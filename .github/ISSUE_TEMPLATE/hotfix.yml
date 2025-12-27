@@ -1,0 +1,81 @@
+name: Hotfix
+description: Urgent fix for production issue
+labels: ["hotfix", "urgent"]
+body:
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: How critical is this?
+      options:
+        - P0 (system down, immediate action required)
+        - P1 (major feature broken, needs fix today)
+        - P2 (significant issue, needs fix this week)
+    validations:
+      required: true
+
+  - type: textarea
+    id: incident
+    attributes:
+      label: Incident Description
+      description: What is happening in production?
+      placeholder: |
+        Users are experiencing...
+        Started at:
+        Affected users/systems:
+    validations:
+      required: true
+
+  - type: textarea
+    id: root-cause
+    attributes:
+      label: Root Cause (if known)
+      description: What caused this issue?
+      placeholder: |
+        The issue was caused by...
+        (If unknown, leave blank - will be filled after investigation)
+    validations:
+      required: false
+
+  - type: textarea
+    id: fix
+    attributes:
+      label: Proposed Fix
+      description: How will we fix this?
+      placeholder: |
+        - [ ] Immediate mitigation
+        - [ ] Permanent fix
+    validations:
+      required: true
+
+  - type: textarea
+    id: rollback
+    attributes:
+      label: Rollback Plan
+      description: How do we rollback if the fix makes things worse?
+      placeholder: |
+        If the fix fails:
+        1. Revert commit X
+        2. Redeploy version Y
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: How do we know production is stable?
+      placeholder: |
+        - [ ] Incident resolved
+        - [ ] Monitoring shows normal behavior
+        - [ ] Post-mortem scheduled
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Incident links, logs, timeline
+    validations:
+      required: false
