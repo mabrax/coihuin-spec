@@ -6,7 +6,7 @@ impact: additive
 version: minor
 status: draft
 created: 2025-12-17
-updated: 2025-12-17
+updated: 2025-12-18
 
 context:
   required:
@@ -18,9 +18,9 @@ context:
 
 depends_on:
   - ISSUE-004  # Tool migration completes first
-  - ISSUE-005  # Orchestrator ready
-  - ISSUE-006  # Snapshot commands ready
-  - ISSUE-007  # Analysis commands ready
+  - ISSUE-005  # Orchestrator command ready
+  - ISSUE-006  # Snapshot agents ready
+  - ISSUE-007  # Analysis agents ready
   - ISSUE-008  # Validation command ready
 blocks: []
 ---
@@ -35,7 +35,7 @@ Currently, documentation describes required context per nature but lacks:
 - How to gather that context (research workflows)
 - The Research Phase in the overall methodology flow
 - Quality gates between phases
-- CLI commands for research (`cspec research`, `/cspec:research-validate`)
+- Slash commands for research (`/cspec:research`, `/cspec:research-validate`)
 
 ## Scope
 
@@ -44,8 +44,8 @@ Currently, documentation describes required context per nature but lacks:
 - [ ] Update AGENTS.md to document research commands and workflow
 - [ ] Update methodology flow documentation to include Research Phase
 - [ ] Document quality gates between phases
-- [ ] Document `cspec research ISSUE-XXX` CLI usage
-- [ ] Document `/cspec:research-validate ISSUE-XXX` command
+- [ ] Document `/cspec:research ISSUE-XXX` command usage
+- [ ] Document `/cspec:research-validate ISSUE-XXX` command usage
 - [ ] Document research output structure (issue directory layout)
 - [ ] Add research phase to workflow diagrams
 
@@ -60,7 +60,7 @@ Currently, documentation describes required context per nature but lacks:
 - [ ] AGENTS.md includes research workflow documentation
 - [ ] Methodology flow shows Research Phase between Issue and Spec
 - [ ] Quality gates documented for all phase transitions
-- [ ] CLI commands documented with examples
+- [ ] Slash commands documented with examples
 - [ ] Research output structure documented with directory layout
 - [ ] Documentation is consistent with implemented behavior
 
