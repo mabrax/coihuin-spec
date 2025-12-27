@@ -7,13 +7,6 @@ from pathlib import Path
 
 import click
 import yaml
-from pydantic import ValidationError
-
-from cspec.schemas import (
-    IssueFrontmatter,
-    REQUIRED_CONTEXT_BY_NATURE,
-    Nature,
-)
 
 # Package directory for bundled resources
 PACKAGE_DIR = Path(__file__).parent
@@ -176,8 +169,9 @@ def main():
 def init(force: bool):
     """Initialize spec-driven development in current project.
 
-    Creates directory structure, installs Claude Code slash commands,
-    copies AGENTS.md template, and updates CLAUDE.md with reference.
+    Creates directory structure (cspec/specs/ and cspec/work/),
+    installs Claude Code slash commands, copies AGENTS.md template,
+    and updates CLAUDE.md with reference.
     """
     click.echo(click.style(BANNER, fg="cyan"))
 
@@ -185,7 +179,8 @@ def init(force: bool):
 
     # Directories to create
     dirs = [
-        project_root / "cspec" / "issues",
+        project_root / "cspec" / "specs",
+        project_root / "cspec" / "work",
         project_root / ".claude" / "commands" / "cspec",
     ]
 
@@ -209,9 +204,12 @@ def init(force: bool):
     update_claude_md(project_root)
 
     click.echo("\n✓ Initialization complete!")
+    click.echo("\nDirectory structure:")
+    click.echo("  cspec/specs/  - Permanent feature specs (source of truth)")
+    click.echo("  cspec/work/   - Ephemeral work directories")
     click.echo("\nNext steps:")
-    click.echo("  1. Run 'cspec onboard' to create PROJECT.yaml and CONSTITUTION.md")
-    click.echo("  2. Run /cspec:issue-create <description> to create your first issue")
+    click.echo("  1. Start work: /cspec:work-start <slug> <description>")
+    click.echo("  2. Write specs: /cspec:spec-write <feature>")
     click.echo("\nNote: Slash commands are namespaced as cspec:<command>")
 
 
@@ -243,182 +241,13 @@ def update(force: bool):
     click.echo(f"\n✓ Update complete ({installed} command(s) refreshed)")
 
 
-@main.command()
-@click.argument("path", type=click.Path(exists=True))
-@click.option("--strict", "-s", is_flag=True, help="Fail on warnings too")
-def validate(path: str, strict: bool):
-    """Validate an issue file against the schema.
-
-    PATH is the path to the issue markdown file.
-    """
-    issue_path = Path(path)
-
-    click.echo(f"Validating {issue_path.name}...\n")
-
-    # Read file
-    content = issue_path.read_text()
-
-    # Extract YAML frontmatter
-    frontmatter_match = re.match(r"^---\n(.*?)\n---", content, re.DOTALL)
-    if not frontmatter_match:
-        click.echo("❌ FAIL: No YAML frontmatter found")
-        click.echo("   Issue files must start with ---\\n<yaml>\\n---")
-        sys.exit(1)
-
-    frontmatter_str = frontmatter_match.group(1)
-
-    # Parse YAML
-    try:
-        frontmatter_data = yaml.safe_load(frontmatter_str)
-    except yaml.YAMLError as e:
-        click.echo(f"❌ FAIL: Invalid YAML in frontmatter")
-        click.echo(f"   {e}")
-        sys.exit(1)
-
-    # Validate against schema
-    errors = []
-    warnings = []
-
-    try:
-        issue = IssueFrontmatter(**frontmatter_data)
-        click.echo("Schema Validation:")
-        click.echo("  ✓ ID format valid")
-        click.echo("  ✓ Title present and under 100 chars")
-        click.echo("  ✓ Nature valid")
-        click.echo("  ✓ Impact valid")
-        click.echo("  ✓ Version matches impact")
-        click.echo("  ✓ Status valid")
-        click.echo("  ✓ Dates valid")
-    except ValidationError as e:
-        click.echo("Schema Validation:")
-        for error in e.errors():
-            loc = ".".join(str(x) for x in error["loc"])
-            msg = error["msg"]
-            errors.append(f"{loc}: {msg}")
-            click.echo(f"  ✗ {loc}: {msg}")
-
-    # Check body sections
-    click.echo("\nBody Validation:")
-    body = content[frontmatter_match.end():]
-
-    if "## Problem" in body:
-        problem_section = re.search(r"## Problem\n+(.*?)(?=\n## |\Z)", body, re.DOTALL)
-        if problem_section and problem_section.group(1).strip():
-            click.echo("  ✓ Problem section present")
-        else:
-            errors.append("Problem section is empty")
-            click.echo("  ✗ Problem section is empty")
-    else:
-        errors.append("Missing ## Problem section")
-        click.echo("  ✗ Missing ## Problem section")
-
-    if "## Scope" in body:
-        click.echo("  ✓ Scope section present")
-        if "### In Scope" in body:
-            in_scope = re.search(r"### In Scope\n+(.*?)(?=\n### |\n## |\Z)", body, re.DOTALL)
-            if in_scope and ("- [" in in_scope.group(1) or "- " in in_scope.group(1)):
-                click.echo("  ✓ In-scope items defined")
-            else:
-                errors.append("No in-scope items defined")
-                click.echo("  ✗ No in-scope items defined")
-        else:
-            errors.append("Missing ### In Scope subsection")
-            click.echo("  ✗ Missing ### In Scope subsection")
-    else:
-        errors.append("Missing ## Scope section")
-        click.echo("  ✗ Missing ## Scope section")
-
-    if "## Acceptance Criteria" in body:
-        ac_section = re.search(r"## Acceptance Criteria\n+(.*?)(?=\n## |\Z)", body, re.DOTALL)
-        if ac_section and ("- [" in ac_section.group(1) or "- " in ac_section.group(1)):
-            click.echo("  ✓ Acceptance criteria defined")
-        else:
-            errors.append("No acceptance criteria defined")
-            click.echo("  ✗ No acceptance criteria defined")
-    else:
-        errors.append("Missing ## Acceptance Criteria section")
-        click.echo("  ✗ Missing ## Acceptance Criteria section")
-
-    # Check nature-specific context requirements
-    if 'issue' in dir() and issue:
-        nature = issue.nature
-        required_ctx = REQUIRED_CONTEXT_BY_NATURE.get(nature, [])
-        if required_ctx:
-            click.echo(f"\nNature-Specific Requirements ({nature.value}):")
-            provided_types = {ref.type for ref in issue.context.required}
-            for ctx_type in required_ctx:
-                if ctx_type in provided_types:
-                    click.echo(f"  ✓ {ctx_type} referenced")
-                else:
-                    warnings.append(f"Missing recommended context: {ctx_type}")
-                    click.echo(f"  ⚠ {ctx_type} not referenced (recommended)")
-
-    # Summary
-    click.echo("\n" + "=" * 40)
-    if errors:
-        click.echo(f"❌ VALIDATION FAILED - {len(errors)} error(s)")
-        for err in errors:
-            click.echo(f"   • {err}")
-        sys.exit(1)
-    elif warnings and strict:
-        click.echo(f"❌ VALIDATION FAILED (strict mode) - {len(warnings)} warning(s)")
-        for warn in warnings:
-            click.echo(f"   • {warn}")
-        sys.exit(1)
-    elif warnings:
-        click.echo(f"⚠ VALIDATION PASSED with {len(warnings)} warning(s)")
-        sys.exit(0)
-    else:
-        click.echo("✓ VALIDATION PASSED")
-        sys.exit(0)
-
-
-def _check_file_status(path: Path) -> str:
-    """Check if a file is missing, empty, or filled.
-
-    Returns: 'missing', 'empty', or 'filled'
-    """
-    if not path.exists():
-        return "missing"
-    content = path.read_text().strip()
-    if not content:
-        return "empty"
-    return "filled"
-
-
-def _check_yaml_status(path: Path) -> str:
-    """Check if a YAML file is missing, empty, has only comments/placeholders, or is filled.
-
-    Returns: 'missing', 'empty', or 'filled'
-    """
-    if not path.exists():
-        return "missing"
-    content = path.read_text().strip()
-    if not content:
-        return "empty"
-
-    # Check if it's just comments or placeholder content
-    try:
-        data = yaml.safe_load(content)
-        if data is None or data == {}:
-            return "empty"
-        # Check for placeholder values (common patterns)
-        if isinstance(data, dict):
-            values = list(data.values())
-            # If all values are None, empty strings, or placeholder markers
-            if all(v is None or v == "" or v == "TODO" or v == "TBD" for v in values):
-                return "empty"
-        return "filled"
-    except yaml.YAMLError:
-        # If YAML is invalid, consider it empty/problematic
-        return "empty"
 
 
 @main.command()
 def status():
     """Check project health and report status.
 
-    Reports on directory structure, PROJECT.yaml, CONSTITUTION.md, and AGENTS.md.
+    Reports on directory structure, specs, and work in progress.
     Exit code 0 if healthy, 1 if issues found.
     """
     project_root = Path.cwd()
@@ -431,8 +260,8 @@ def status():
     # Check directory structure
     click.echo("Directory Structure:")
     required_dirs = [
-        ("cspec/", project_root / "cspec"),
-        ("cspec/issues/", project_root / "cspec" / "issues"),
+        ("cspec/specs/", project_root / "cspec" / "specs"),
+        ("cspec/work/", project_root / "cspec" / "work"),
         (".claude/commands/", project_root / ".claude" / "commands"),
     ]
 
@@ -445,37 +274,45 @@ def status():
 
     click.echo()
 
-    # Check PROJECT.yaml
-    click.echo("Configuration Files:")
-    project_yaml = project_root / "cspec" / "PROJECT.yaml"
-    project_status = _check_yaml_status(project_yaml)
-    if project_status == "filled":
-        click.echo(f"  [OK] PROJECT.yaml (filled)")
-    elif project_status == "empty":
-        click.echo(f"  [WARN] PROJECT.yaml (empty - needs configuration)")
-        issues_found = True
+    # Count specs
+    specs_dir = project_root / "cspec" / "specs"
+    if specs_dir.exists():
+        spec_dirs = [d for d in specs_dir.iterdir() if d.is_dir() and (d / "spec.md").exists()]
+        click.echo(f"Permanent Specs: {len(spec_dirs)}")
+        for spec_dir in sorted(spec_dirs):
+            click.echo(f"  • {spec_dir.name}/spec.md")
     else:
-        click.echo(f"  [MISSING] PROJECT.yaml")
-        issues_found = True
+        click.echo("Permanent Specs: (directory missing)")
 
-    # Check CONSTITUTION.md
-    constitution = project_root / "cspec" / "CONSTITUTION.md"
-    constitution_status = _check_file_status(constitution)
-    if constitution_status == "filled":
-        click.echo(f"  [OK] CONSTITUTION.md (filled)")
-    elif constitution_status == "empty":
-        click.echo(f"  [WARN] CONSTITUTION.md (empty - needs content)")
-        issues_found = True
+    click.echo()
+
+    # Count work in progress
+    work_dir = project_root / "cspec" / "work"
+    if work_dir.exists():
+        work_dirs = [d for d in work_dir.iterdir() if d.is_dir()]
+        click.echo(f"Work in Progress: {len(work_dirs)}")
+        for wd in sorted(work_dirs):
+            # Check what's in the work directory
+            has_issue = (wd / "issue.md").exists()
+            spec_files = list(wd.glob("spec-*.md"))
+            status_parts = []
+            if has_issue:
+                status_parts.append("issue")
+            if spec_files:
+                status_parts.append(f"{len(spec_files)} spec(s)")
+            status_str = ", ".join(status_parts) if status_parts else "empty"
+            click.echo(f"  • {wd.name}/ ({status_str})")
     else:
-        click.echo(f"  [MISSING] CONSTITUTION.md")
-        issues_found = True
+        click.echo("Work in Progress: (directory missing)")
+
+    click.echo()
 
     # Check AGENTS.md
     agents = project_root / "AGENTS.md"
     if agents.exists():
-        click.echo(f"  [OK] AGENTS.md (exists)")
+        click.echo(f"AGENTS.md: [OK]")
     else:
-        click.echo(f"  [MISSING] AGENTS.md")
+        click.echo(f"AGENTS.md: [MISSING]")
         issues_found = True
 
     click.echo()
@@ -485,7 +322,6 @@ def status():
     if issues_found:
         click.echo("Status: ISSUES FOUND")
         click.echo("\nRun 'cspec init' to create missing directories.")
-        click.echo("Run 'cspec onboard' to create configuration files.")
         sys.exit(1)
     else:
         click.echo("Status: HEALTHY")
@@ -494,152 +330,24 @@ def status():
 
 ONBOARD_PROMPT = '''# Project Onboarding
 
-You are onboarding to a spec-driven development project. This command helps set up missing configuration and populates project context for coding agents.
+You are onboarding to a spec-driven development project. This command helps populate the AGENTS.md PROJECT CONTEXT section with codebase analysis.
 
 ## Process
 
 ### Step 1: Check Project Status
 
-Run `cspec status` to assess the current state of the project:
+Run `cspec status` to assess the current state:
 
 ```bash
 cspec status
 ```
 
-Review the output to understand:
-- Whether cspec/ directory exists
-- Whether PROJECT.yaml exists and has content
-- Whether CONSTITUTION.md exists and has content
-- Current issue count and statuses
+Review:
+- Whether cspec/specs/ and cspec/work/ directories exist
+- What permanent specs exist
+- What work is in progress
 
-### Step 2: Handle PROJECT.yaml
-
-If PROJECT.yaml is missing or empty, gather information from the user:
-
-**Ask the user:**
-
-1. **Project Name**: What is this project called?
-2. **Description**: What does this project do? (1-2 sentences)
-3. **Purpose**: Why does this project exist? What problem does it solve?
-4. **Tech Stack**: What languages, frameworks, and key dependencies are used?
-5. **Scope**: What\'s in and out of bounds for this project?
-6. **Stakeholders**: Who uses or depends on this project?
-
-**Then create `cspec/PROJECT.yaml`:**
-
-```yaml
-name: "<project name>"
-description: "<description>"
-purpose: "<why it exists>"
-created: <YYYY-MM-DD>
-
-scope:
-  includes:
-    - "<what\'s in scope>"
-  excludes:
-    - "<what\'s out of scope>"
-
-tech_stack:
-  languages:
-    - "<primary language>"
-  frameworks:
-    - "<framework>"
-  dependencies:
-    - "<key dependency>"
-
-stakeholders:
-  - "<stakeholder 1>"
-
-methodology: spec-driven
-version: 0.1.0
-```
-
-If PROJECT.yaml already exists with content, read it and proceed to Step 3.
-
-### Step 3: Handle CONSTITUTION.md
-
-If CONSTITUTION.md is missing or empty, gather information from the user:
-
-**Ask the user:**
-
-1. **Philosophy**: What guiding principles should this project follow?
-2. **Rules/Constraints**: Are there any hard rules or constraints for development?
-3. **Quality Standards**: What quality bars must be met?
-4. **Anti-patterns**: What practices should be avoided?
-5. **Decision Framework**: How should technical decisions be made?
-
-**Then create `cspec/CONSTITUTION.md`:**
-
-```markdown
-# Constitution
-
-## Philosophy
-
-This project follows **spec-driven development**:
-
-1. **Issue first**: Every change starts with an issue (the "what and why")
-2. **Spec before code**: Specs define the "how" before implementation
-3. **Source of truth**: Specs are authoritative; code implements specs
-4. **Validate against spec**: Implementation correctness = spec compliance
-5. **Clean exit**: Delete transient artifacts; keep persistent ones updated
-
-<Add any project-specific philosophy from user input>
-
-## Rules
-
-### Issues
-
-- Every change requires an issue
-- Issues must have: nature, impact, scope, acceptance criteria
-- Issues must be validated before moving to spec phase
-
-### Specs
-
-- Specs must cover every boundary a change crosses
-- Specs must be machine-readable where possible
-- Specs include validation hooks (how to verify implementation)
-
-### Implementation
-
-- Implementation follows spec, not the other way around
-- Deviations from spec require spec update first
-- Feedback loops return to appropriate phase (issue or spec)
-
-<Add any project-specific rules from user input>
-
-## Quality Standards
-
-<Add quality standards from user input, or use defaults:>
-
-- All code must pass linting
-- All tests must pass before merge
-- Code review required for all changes
-
-## Anti-patterns
-
-<Add anti-patterns from user input, or use defaults:>
-
-- Avoid premature optimization
-- Avoid over-engineering
-- Avoid undocumented "magic"
-
-## Artifacts
-
-| Type | Lifecycle |
-|------|-----------|
-| Wireframes, task breakdowns, design explorations | Transient (delete when done) |
-| API contracts, schemas, business rules, ADRs | Persistent (source of truth) |
-
-## Versioning
-
-- **Breaking** changes to Major version
-- **Additive** changes to Minor version
-- **Invisible** changes to Patch version
-```
-
-If CONSTITUTION.md already exists with content, read it and proceed to Step 4.
-
-### Step 4: Analyze the Codebase
+### Step 2: Analyze the Codebase
 
 Explore the project to gather context for AGENTS.md. Analyze:
 
@@ -650,18 +358,18 @@ Explore the project to gather context for AGENTS.md. Analyze:
 5. **Important Files**: Identify entry points, configuration files, core modules
 6. **Testing**: Find test directories, test frameworks, test commands
 7. **Build/Deploy**: Check for build scripts, CI/CD configs, deployment files
-8. **Documentation**: Review existing README, docs, comments
+8. **Existing Specs**: Review any specs in cspec/specs/
 
-### Step 5: Update AGENTS.md PROJECT CONTEXT
+### Step 3: Update AGENTS.md PROJECT CONTEXT
 
-Locate the AGENTS.md file (typically in the project root or created by `cspec init`). Find the `## PROJECT CONTEXT` section and populate it with your findings:
+Find the `## PROJECT CONTEXT` section in AGENTS.md and populate it:
 
 ```markdown
 ## PROJECT CONTEXT
 
 ### Project Overview
 
-<Brief description synthesized from PROJECT.yaml and codebase analysis>
+<Brief description from codebase analysis>
 
 ### Tech Stack
 
@@ -682,13 +390,11 @@ Locate the AGENTS.md file (typically in the project root or created by `cspec in
 - **Naming**: <camelCase/snake_case/PascalCase patterns>
 - **File Structure**: <how files are organized>
 - **Patterns**: <design patterns used>
-- **Linting**: <linting tools and configs>
 
 ### Important Files
 
 | File | Purpose |
 |------|---------|
-| <path> | <description> |
 | <path> | <description> |
 
 ### Testing
@@ -696,44 +402,30 @@ Locate the AGENTS.md file (typically in the project root or created by `cspec in
 - **Framework**: <test framework>
 - **Run Tests**: `<test command>`
 - **Test Location**: <test directory>
-- **Coverage**: <coverage requirements if any>
 
 ### Build & Deploy
 
 - **Build**: `<build command>`
 - **Dev Server**: `<dev command>`
-- **Deploy**: <deployment process>
 
 ### Domain Knowledge
 
-<Project-specific terminology, business logic, domain concepts that an agent should understand>
+<Project-specific terminology, business logic, domain concepts>
 ```
 
-### Step 6: Summary
+### Step 4: Summary
 
-Output a summary of what was done:
-
-1. **Status Check Results**: What was found
-2. **Files Created/Updated**:
-   - PROJECT.yaml: created/existed/updated
-   - CONSTITUTION.md: created/existed/updated
-   - AGENTS.md: PROJECT CONTEXT section populated
-3. **Project Context Gathered**:
-   - Tech stack identified
-   - Architecture insights
-   - Key conventions
-   - Important files
-4. **Next Steps**:
-   - Review the generated content and adjust as needed
-   - Use `/cspec:issue-create` to start tracking work
-   - Run `cspec validate` to check any existing issues
+Output what was done:
+- Directory structure status
+- Existing specs found
+- AGENTS.md PROJECT CONTEXT populated
+- Next steps: Start work with /cspec:work-start
 
 ## Notes
 
-- If the project already has all configuration, this command focuses on populating the PROJECT CONTEXT section in AGENTS.md
-- Always preserve existing content - don\'t overwrite user customizations
+- The goal is to give coding agents enough context to work effectively
+- Preserve existing content - don\'t overwrite user customizations
 - Ask clarifying questions when information is ambiguous
-- The goal is to give coding agents enough context to work effectively in this project
 '''
 
 
@@ -742,26 +434,33 @@ Output a summary of what was done:
 def onboard(force: bool):
     """Onboard to a spec-driven project.
 
-    Checks if the project is already onboarded (PROJECT.yaml and CONSTITUTION.md filled).
-    If not onboarded, outputs the LLM prompt for Claude to execute the onboarding process.
+    Checks if AGENTS.md PROJECT CONTEXT is populated.
+    Outputs the LLM prompt for Claude to execute the onboarding process.
     """
     project_root = Path.cwd()
 
-    # Check onboarding status
-    project_yaml = project_root / "cspec" / "PROJECT.yaml"
-    constitution = project_root / "cspec" / "CONSTITUTION.md"
+    # Check if AGENTS.md exists and has PROJECT CONTEXT filled
+    agents_md = project_root / "AGENTS.md"
+    is_onboarded = False
 
-    project_status = _check_yaml_status(project_yaml)
-    constitution_status = _check_file_status(constitution)
-
-    is_onboarded = project_status == "filled" and constitution_status == "filled"
+    if agents_md.exists():
+        content = agents_md.read_text()
+        # Check if PROJECT CONTEXT section has actual content (not just the header)
+        if "## PROJECT CONTEXT" in content:
+            # Look for subsections that indicate it's been filled
+            if "### Project Overview" in content and "### Tech Stack" in content:
+                # Check if there's actual content (not just placeholders)
+                overview_match = content.find("### Project Overview")
+                tech_match = content.find("### Tech Stack")
+                if overview_match < tech_match:
+                    between = content[overview_match:tech_match]
+                    # If there's substantial content between sections, consider it onboarded
+                    if len(between.strip().split("\n")) > 3:
+                        is_onboarded = True
 
     if is_onboarded and not force:
-        click.echo("Project is already onboarded.")
-        click.echo()
-        click.echo("Status:")
-        click.echo(f"  PROJECT.yaml: {project_status}")
-        click.echo(f"  CONSTITUTION.md: {constitution_status}")
+        click.echo("Project appears to be already onboarded.")
+        click.echo("AGENTS.md PROJECT CONTEXT section has content.")
         click.echo()
         click.echo("Use --force to re-run onboarding anyway.")
         sys.exit(0)
@@ -774,201 +473,183 @@ def onboard(force: bool):
     click.echo(ONBOARD_PROMPT)
 
 
-@main.command("list")
-@click.option(
-    "--status",
-    "-s",
-    type=click.Choice(["draft", "ready", "in-progress", "blocked", "done"], case_sensitive=False),
-    help="Filter by status",
-)
-def list_issues(status: str):
-    """List all issues in the project."""
-    issues_dir = Path.cwd() / "cspec" / "issues"
+@main.group()
+def specs():
+    """Commands for managing permanent specs."""
+    pass
 
-    if not issues_dir.exists():
-        click.echo("No cspec/issues directory found. Run 'cspec init' first.")
+
+@specs.command("list")
+def specs_list():
+    """List all permanent specs."""
+    specs_dir = Path.cwd() / "cspec" / "specs"
+
+    if not specs_dir.exists():
+        click.echo("No cspec/specs directory found. Run 'cspec init' first.")
         sys.exit(1)
 
-    issues = list(issues_dir.glob("ISSUE-*.md"))
+    spec_dirs = [d for d in specs_dir.iterdir() if d.is_dir() and (d / "spec.md").exists()]
 
-    if not issues:
-        click.echo("No issues found.")
+    if not spec_dirs:
+        click.echo("No specs found.")
+        click.echo("\nCreate a spec by starting work: /cspec:work-start <slug> <description>")
         return
 
-    click.echo(f"Found {len(issues)} issue(s):\n")
+    click.echo(f"Found {len(spec_dirs)} spec(s):\n")
 
-    for issue_path in sorted(issues):
-        content = issue_path.read_text()
-        frontmatter_match = re.match(r"^---\n(.*?)\n---", content, re.DOTALL)
-        if frontmatter_match:
-            try:
-                data = yaml.safe_load(frontmatter_match.group(1))
-                issue_status = data.get("status", "unknown")
-                if status and issue_status != status:
-                    continue
-                title = data.get("title", "Untitled")
-                nature = data.get("nature", "unknown")
-                click.echo(f"  {data.get('id', issue_path.stem)} [{issue_status}] ({nature})")
-                click.echo(f"    {title}")
-            except yaml.YAMLError:
-                click.echo(f"  {issue_path.stem} [error parsing]")
+    for spec_dir in sorted(spec_dirs):
+        spec_file = spec_dir / "spec.md"
+        # Read first line to get title
+        content = spec_file.read_text()
+        first_line = content.split("\n")[0].strip()
+        if first_line.startswith("#"):
+            title = first_line.lstrip("#").strip()
+        else:
+            title = spec_dir.name
 
-    # Show hint about filtering when no filter is applied
-    if not status:
-        click.echo("\nFilter by status: --status=draft|ready|in-progress|blocked|done")
+        # Count diagrams
+        diagrams = list(spec_dir.glob("*.mmd"))
+        diagram_str = f" (+{len(diagrams)} diagrams)" if diagrams else ""
+
+        click.echo(f"  {spec_dir.name}/")
+        click.echo(f"    {title}{diagram_str}")
 
 
-def _normalize_issue_id(issue_id: str) -> str:
-    """Normalize issue ID to ISSUE-XXX format.
+@specs.command("show")
+@click.argument("feature")
+def specs_show(feature: str):
+    """Show a feature spec."""
+    spec_dir = Path.cwd() / "cspec" / "specs" / feature
 
-    Accepts: ISSUE-001, 001, 1
-    Returns: ISSUE-001
-    """
-    # Strip any prefix and get just the number
-    if issue_id.upper().startswith("ISSUE-"):
-        num_part = issue_id[6:]
-    else:
-        num_part = issue_id
-
-    # Pad to at least 3 digits
-    try:
-        num = int(num_part)
-        return f"ISSUE-{num:03d}"
-    except ValueError:
-        return issue_id  # Return as-is if not parseable
-
-
-def _extract_section(body: str, section_name: str) -> str | None:
-    """Extract content from a markdown section."""
-    pattern = rf"## {section_name}\n+(.*?)(?=\n## |\Z)"
-    match = re.search(pattern, body, re.DOTALL)
-    if match:
-        return match.group(1).strip()
-    return None
-
-
-@main.command("show")
-@click.argument("issue_id")
-def show_issue(issue_id: str):
-    """Show details of a specific issue.
-
-    ISSUE_ID can be the full ID (ISSUE-001) or just the number (001 or 1).
-    """
-    issues_dir = Path.cwd() / "cspec" / "issues"
-
-    if not issues_dir.exists():
-        click.echo("No cspec/issues directory found. Run 'cspec init' first.")
+    if not spec_dir.exists():
+        click.echo(f"Spec not found: {feature}")
+        # Suggest similar
+        specs_dir = Path.cwd() / "cspec" / "specs"
+        if specs_dir.exists():
+            existing = [d.name for d in specs_dir.iterdir() if d.is_dir()]
+            if existing:
+                click.echo(f"\nAvailable specs: {', '.join(sorted(existing))}")
         sys.exit(1)
 
-    # Normalize the issue ID
-    normalized_id = _normalize_issue_id(issue_id)
-    issue_path = issues_dir / f"{normalized_id}.md"
-
-    if not issue_path.exists():
-        click.echo(f"Issue not found: {normalized_id}")
-        click.echo(f"  Looked for: {issue_path}")
-        # Suggest similar issues
-        existing = list(issues_dir.glob("ISSUE-*.md"))
-        if existing:
-            click.echo(f"\nAvailable issues:")
-            for p in sorted(existing):
-                click.echo(f"  {p.stem}")
+    spec_file = spec_dir / "spec.md"
+    if not spec_file.exists():
+        click.echo(f"No spec.md found in {feature}/")
         sys.exit(1)
 
-    # Read and parse the issue
-    content = issue_path.read_text()
-    frontmatter_match = re.match(r"^---\n(.*?)\n---", content, re.DOTALL)
+    content = spec_file.read_text()
+    click.echo(content)
 
-    if not frontmatter_match:
-        click.echo(f"Error: {normalized_id} has no valid frontmatter")
+    # List diagrams
+    diagrams = list(spec_dir.glob("*.mmd"))
+    if diagrams:
+        click.echo("\n---")
+        click.echo("Diagrams:")
+        for d in diagrams:
+            click.echo(f"  • {d.name}")
+
+
+@main.group()
+def work():
+    """Commands for managing work in progress."""
+    pass
+
+
+@work.command("list")
+def work_list():
+    """List all work in progress."""
+    work_dir = Path.cwd() / "cspec" / "work"
+
+    if not work_dir.exists():
+        click.echo("No cspec/work directory found. Run 'cspec init' first.")
         sys.exit(1)
 
-    try:
-        data = yaml.safe_load(frontmatter_match.group(1))
-    except yaml.YAMLError as e:
-        click.echo(f"Error parsing frontmatter: {e}")
+    work_dirs = [d for d in work_dir.iterdir() if d.is_dir()]
+
+    if not work_dirs:
+        click.echo("No work in progress.")
+        click.echo("\nStart work: /cspec:work-start <slug> <description>")
+        return
+
+    click.echo(f"Found {len(work_dirs)} work item(s):\n")
+
+    for wd in sorted(work_dirs):
+        # Check contents
+        has_issue = (wd / "issue.md").exists()
+        has_proposal = (wd / "proposal.md").exists()
+        spec_files = list(wd.glob("spec-*.md"))
+        context_files = list((wd / "context").glob("*.md")) if (wd / "context").exists() else []
+
+        parts = []
+        if has_issue:
+            parts.append("issue")
+        if has_proposal:
+            parts.append("proposal")
+        if spec_files:
+            parts.append(f"{len(spec_files)} spec(s)")
+        if context_files:
+            parts.append(f"{len(context_files)} context")
+
+        status_str = ", ".join(parts) if parts else "empty"
+        click.echo(f"  {wd.name}/ ({status_str})")
+
+
+@work.command("show")
+@click.argument("slug")
+def work_show(slug: str):
+    """Show details of a work item."""
+    work_item = Path.cwd() / "cspec" / "work" / slug
+
+    if not work_item.exists():
+        click.echo(f"Work item not found: {slug}")
+        # Suggest similar
+        work_dir = Path.cwd() / "cspec" / "work"
+        if work_dir.exists():
+            existing = [d.name for d in work_dir.iterdir() if d.is_dir()]
+            if existing:
+                click.echo(f"\nAvailable work items: {', '.join(sorted(existing))}")
         sys.exit(1)
 
-    body = content[frontmatter_match.end():]
-
-    # Display formatted output
+    click.echo(click.style(f"═══ Work: {slug} ═══", fg="cyan", bold=True))
     click.echo()
-    click.echo(click.style(f"═══ {data.get('id', normalized_id)} ═══", fg="cyan", bold=True))
-    click.echo()
-    click.echo(click.style(data.get("title", "Untitled"), bold=True))
-    click.echo()
 
-    # Metadata line
-    nature = data.get("nature", "unknown")
-    impact = data.get("impact", "unknown")
-    version = data.get("version", "unknown")
-    status = data.get("status", "unknown")
-
-    status_colors = {
-        "draft": "yellow",
-        "ready": "blue",
-        "in-progress": "magenta",
-        "blocked": "red",
-        "done": "green",
-    }
-    status_color = status_colors.get(status, "white")
-
-    click.echo(f"Nature: {nature}  │  Impact: {impact}  │  Version: {version}")
-    click.echo(f"Status: {click.style(status, fg=status_color, bold=True)}")
-    click.echo(f"Created: {data.get('created', 'unknown')}  │  Updated: {data.get('updated', 'unknown')}")
-
-    # Dependencies
-    depends_on = data.get("depends_on", [])
-    blocks = data.get("blocks", [])
-    if depends_on or blocks:
-        click.echo()
-        click.echo(click.style("Dependencies:", underline=True))
-        if depends_on:
-            click.echo(f"  Depends on: {', '.join(depends_on)}")
-        if blocks:
-            click.echo(f"  Blocks: {', '.join(blocks)}")
-
-    # Problem section
-    problem = _extract_section(body, "Problem")
-    if problem:
-        click.echo()
-        click.echo(click.style("Problem:", underline=True))
-        for line in problem.split("\n"):
+    # Show issue if exists
+    issue_file = work_item / "issue.md"
+    if issue_file.exists():
+        click.echo(click.style("Issue:", underline=True))
+        content = issue_file.read_text()
+        # Show first few lines
+        lines = content.split("\n")[:10]
+        for line in lines:
             click.echo(f"  {line}")
-
-    # Scope section
-    click.echo()
-    click.echo(click.style("Scope:", underline=True))
-
-    in_scope = re.search(r"### In Scope\n+(.*?)(?=\n### |\n## |\Z)", body, re.DOTALL)
-    if in_scope:
-        click.echo("  In Scope:")
-        for line in in_scope.group(1).strip().split("\n"):
-            click.echo(f"    {line}")
-
-    out_scope = re.search(r"### Out of Scope\n+(.*?)(?=\n### |\n## |\Z)", body, re.DOTALL)
-    if out_scope:
-        click.echo("  Out of Scope:")
-        for line in out_scope.group(1).strip().split("\n"):
-            click.echo(f"    {line}")
-
-    # Acceptance Criteria
-    criteria = _extract_section(body, "Acceptance Criteria")
-    if criteria:
+        if len(content.split("\n")) > 10:
+            click.echo("  ...")
         click.echo()
-        click.echo(click.style("Acceptance Criteria:", underline=True))
-        for line in criteria.split("\n"):
-            click.echo(f"  {line}")
 
-    # Notes
-    notes = _extract_section(body, "Notes")
-    if notes:
+    # Show proposal if exists
+    proposal_file = work_item / "proposal.md"
+    if proposal_file.exists():
+        click.echo(click.style("Proposal:", underline=True))
+        click.echo(f"  {proposal_file.name} exists")
         click.echo()
-        click.echo(click.style("Notes:", underline=True))
-        for line in notes.split("\n"):
-            click.echo(f"  {line}")
 
-    click.echo()
+    # Show specs
+    spec_files = list(work_item.glob("spec-*.md"))
+    if spec_files:
+        click.echo(click.style("Specs:", underline=True))
+        for sf in sorted(spec_files):
+            feature = sf.stem.replace("spec-", "")
+            click.echo(f"  • {sf.name} → cspec/specs/{feature}/spec.md")
+        click.echo()
+
+    # Show context
+    context_dir = work_item / "context"
+    if context_dir.exists():
+        context_files = list(context_dir.glob("*.md"))
+        if context_files:
+            click.echo(click.style("Context:", underline=True))
+            for cf in sorted(context_files):
+                click.echo(f"  • {cf.name}")
+            click.echo()
 
 
 if __name__ == "__main__":

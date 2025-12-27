@@ -10,12 +10,12 @@ The `cspec` CLI provides the following commands:
 
 | Command | Description |
 |---------|-------------|
-| `cspec init` | Initialize spec-driven development (creates directories + installs slash commands) |
-| `cspec validate <path>` | Validate an issue file against the schema |
-| `cspec validate <path> --strict` | Validate with strict mode (fail on warnings) |
-| `cspec list` | List all issues in the project |
-| `cspec list --status=<status>` | Filter issues by status (draft, ready, in-progress, blocked, done) |
-| `cspec show <issue-id>` | Show details of a specific issue (accepts ISSUE-001, 001, or 1) |
+| `cspec init` | Initialize spec-driven development (creates `cspec/specs/` and `cspec/work/` directories) |
+| `cspec status` | Check project health and report status |
+| `cspec work list` | List all work directories in progress |
+| `cspec work show <slug>` | Show details of a work item |
+| `cspec specs list` | List all permanent specs |
+| `cspec specs show <feature>` | Show a feature spec |
 | `cspec update` | Update slash commands to latest version |
 
 ---
@@ -26,10 +26,11 @@ Slash commands are available in Claude Code and are namespaced as `cspec:<comman
 
 | Command | Description | Usage |
 |---------|-------------|-------|
-| `/cspec/issue-create` | Interactive issue creation with proper structure | `/cspec/issue-create <description>` |
-| `/cspec/issue-validate` | Full validation with suggestions and fixes | `/cspec/issue-validate <issue-id>` |
+| `/cspec/work-start` | Start new work (creates work directory with issue.md) | `/cspec/work-start <slug> <description>` |
+| `/cspec/spec-write` | Write/update a spec in current work directory | `/cspec/spec-write <feature>` |
+| `/cspec/work-complete` | Merge specs and clean up work directory | `/cspec/work-complete` |
 
-**Note**: Commands can also be invoked as `cspec:issue-create`, `cspec:issue-validate`, etc.
+**Note**: Commands can also be invoked as `cspec:work-start`, `cspec:spec-write`, etc.
 
 ---
 
@@ -49,38 +50,50 @@ Issue --> Spec --> Implementation --> Verification --> Done
 ### Phases
 
 #### Phase 1: Issue Definition
-**Goal**: Capture and validate the change request.
+**Goal**: Capture the change request.
 
-1. Create issue: `/cspec/issue-create <description>`
-2. Classify: Determine nature (feature, bug, etc.) and impact (breaking, additive, invisible)
-3. Define scope and acceptance criteria
-4. Validate schema: `cspec validate specs/issues/ISSUE-XXX.md`
-5. Full validation: `/cspec/issue-validate ISSUE-XXX`
-6. When passing, update status to `ready`
+1. Create work directory: `cspec/work/<work-slug>/`
+2. Write `issue.md` with what/why
+3. Classify: nature (feature, bug, etc.) and impact (breaking, additive, invisible)
+4. Define scope and acceptance criteria
 
 #### Phase 2: Specification
-**Goal**: Define detailed implementation approach before writing code.
+**Goal**: Define business rules before writing code.
 
-1. Identify boundaries the change crosses
-2. Create spec artifacts per boundary
-3. Define validation hooks (how to verify implementation)
-4. Review and approve specs
+1. Identify affected features
+2. Write `spec-<feature>.md` for each feature touched
+3. Use Gherkin-style: SHALL statements + Given/When/Then scenarios
+4. Add diagrams as needed (`.mmd` files)
+5. Review and approve specs
+
+**Spec format:**
+```markdown
+## Requirement: <Name>
+
+The <subject> SHALL <behavior>.
+
+### Scenario: <description>
+
+**Given** <precondition>
+**When** <action>
+**Then** <expected result>
+```
 
 #### Phase 3: Implementation
 **Goal**: Build according to specification.
 
-1. Review spec thoroughly
-2. Implement following spec exactly
-3. Run validation hooks during development
-4. Address all acceptance criteria
+1. Follow spec scenarios exactly
+2. Run validation hooks during development
+3. Address all acceptance criteria
 
-#### Phase 4: Verification
-**Goal**: Confirm implementation matches specification.
+#### Phase 4: Verification & Cleanup
+**Goal**: Confirm implementation and clean up.
 
-1. Run all validation hooks
-2. Check acceptance criteria
-3. Update persistent artifacts
-4. Sign-off and close issue
+1. Verify all scenarios pass
+2. Human sign-off
+3. Merge work specs into `cspec/specs/<feature>/spec.md`
+4. Delete work directory: `rm -rf cspec/work/<work-slug>/`
+5. **Only specs survive**
 
 ### Issue Natures
 
@@ -120,14 +133,32 @@ draft --> ready --> in-progress --> done
 ## File Structure
 
 ```
-specs/
-├── PROJECT.yaml      # Project definition
-├── CONSTITUTION.md   # Rules and philosophy
-└── issues/
-    └── ISSUE-XXX.md  # Issue files
+cspec/
+├── specs/                         # PERMANENT - Source of truth
+│   └── <feature>/                 # One directory per feature
+│       ├── spec.md                # Gherkin-style business rules
+│       └── *.mmd                  # Diagrams (sequence, state, flow)
+│
+└── work/                          # EPHEMERAL - Delete when done
+    └── <work-slug>/               # One directory per work item
+        ├── issue.md               # The trigger (what/why)
+        ├── proposal.md            # High-level approach
+        ├── context/               # Snapshots, RCA, research
+        └── spec-<feature>.md      # Specs being created/modified
 
-.claude/commands/cspec/  # Slash commands (namespaced)
+.claude/commands/cspec/            # Slash commands (namespaced)
 ```
+
+### Permanent vs Ephemeral
+
+| Type | Location | Survives? |
+|------|----------|-----------|
+| Feature specs | `cspec/specs/<feature>/spec.md` | ✓ Always |
+| Diagrams | `cspec/specs/<feature>/*.mmd` | ✓ Always |
+| Issues | `cspec/work/<slug>/issue.md` | ✗ Deleted after done |
+| Proposals | `cspec/work/<slug>/proposal.md` | ✗ Deleted after done |
+| Context | `cspec/work/<slug>/context/` | ✗ Deleted after done |
+| Work specs | `cspec/work/<slug>/spec-*.md` | ✗ Merged then deleted |
 
 ---
 
@@ -154,17 +185,23 @@ Currently in Alpha, recursively dogfooding on itself.
 ```
 coihuin-spec/
 ├── docs/                    # Methodology documentation
-├── specs/                   # Project specs (source of truth)
-│   ├── PROJECT.yaml        # Project definition
-│   ├── CONSTITUTION.md     # Rules and philosophy
-│   └── issues/             # Issue tracking
+├── cspec/                   # Spec-driven development artifacts
+│   ├── specs/              # PERMANENT - Feature specs (source of truth)
+│   │   └── <feature>/
+│   │       ├── spec.md
+│   │       └── *.mmd
+│   └── work/               # EPHEMERAL - Work in progress
+│       └── <work-slug>/
+│           ├── issue.md
+│           ├── proposal.md
+│           ├── context/
+│           └── spec-*.md
 ├── tooling/
 │   └── cspec/              # The CLI tool
 │       ├── src/cspec/
 │       │   ├── cli.py      # Main entry point
 │       │   ├── commands/   # Slash command templates
-│       │   ├── models/     # Pydantic models
-│       │   └── validators/ # Validation logic
+│       │   └── schemas.py  # Pydantic schemas
 │       └── pyproject.toml
 └── AGENTS.md               # This file
 ```
@@ -190,11 +227,11 @@ coihuin-spec/
 | File | Purpose |
 |------|---------|
 | `tooling/cspec/src/cspec/cli.py` | CLI entry point, all commands defined here |
-| `tooling/cspec/src/cspec/models/issue.py` | Issue Pydantic model |
-| `tooling/cspec/src/cspec/validators/issue_validator.py` | Issue validation logic |
+| `tooling/cspec/src/cspec/schemas.py` | Pydantic schemas for validation |
 | `docs/methodology.md` | Full development workflow |
-| `docs/issue-template.md` | Issue file structure |
 | `docs/change-taxonomy-system.md` | Nature/impact classification |
+| `cspec/specs/` | Permanent feature specs (source of truth) |
+| `cspec/work/` | Ephemeral work directories |
 
 ### Testing
 
@@ -213,13 +250,14 @@ coihuin-spec/
 ### Domain Knowledge
 
 **Key Concepts**:
+- **Spec**: Gherkin-style business rules (SHALL + Given/When/Then), no implementation details
+- **Permanent artifacts**: Live in `cspec/specs/`, survive forever, are the source of truth
+- **Ephemeral artifacts**: Live in `cspec/work/`, deleted after work complete
+- **Work directory**: `cspec/work/<slug>/` contains everything for one piece of work
+- **Merge**: Work specs get merged into base specs, then work directory is deleted
 - **Issue**: A change request with nature, impact, scope, and acceptance criteria
 - **Nature**: Type of change (feature, bug, enhancement, refactor, etc.)
 - **Impact**: Effect on consumers (breaking → major, additive → minor, invisible → patch)
-- **Spec**: Detailed implementation design created before coding
-- **Validation hooks**: Commands/tests to verify implementation matches spec
-- **Transient artifacts**: Delete when done (wireframes, plans)
-- **Persistent artifacts**: Source of truth (API contracts, schemas)
 - **Convergent loop**: Aim for one-shot, handle iteration gracefully
 
 ---

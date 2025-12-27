@@ -118,46 +118,44 @@ The development flow is not a strict waterfall. It's a **convergent loop** — y
 
 ## Phase 2: Specification
 
-**Goal**: Define the detailed implementation approach before writing code.
+**Goal**: Define business rules before writing code.
 
 ### Process
 
-1. **Identify boundaries** - What interfaces does this change cross?
-2. **Select spec artifacts** - Based on nature and boundaries
-3. **Write specifications** - Machine-readable where possible
-4. **Define validation hooks** - How to verify implementation
+1. **Create work directory** - `cspec/work/<work-slug>/`
+2. **Identify affected features** - Which specs will this work touch?
+3. **Write specs** - Gherkin-style business rules for each feature
+4. **Add diagrams** - Sequence, state, or flow diagrams as needed
 5. **Review spec** - Human approval before implementation
 
-### The Boundary Principle
+### Spec Principles
 
-The spec should cover every boundary a feature crosses:
+**Business rules, not implementation:**
+- Use SHALL statements for requirements
+- Use Given/When/Then scenarios for behavior
+- No code, no API details, no database schemas
+- Focus on WHAT the system does, not HOW
 
-| Boundary | Spec Artifacts |
-|----------|----------------|
-| User ↔ UI | Wireframes, interaction flows, copy |
-| UI ↔ API | Request/response contracts, error handling |
-| API ↔ Database | Schema changes, queries, migrations |
-| Service ↔ Service | API contracts, message formats |
-| System ↔ External | Integration specs, retry policies |
+**Appropriate scope:**
+- One feature per spec directory
+- Split large features into sub-features
+- A spec should be digestible in one reading
 
 ### Spec Artifacts by Nature
 
-| Nature | Primary Artifacts |
-|--------|-------------------|
-| Feature | Requirements, API contracts, data models, UI specs |
-| Enhancement | Delta spec, backward compatibility notes |
-| Bug Fix | Fix criteria, regression test spec |
-| Refactor | Before/after architecture, equivalence tests |
-| Optimization | Target metrics, measurement plan |
-| Security | Mitigation spec, security test cases |
-| Migration | Data mapping, rollback procedure |
-| Deprecation | Timeline, migration guide |
-| Removal | Final cleanup checklist |
+| Nature | Spec Approach |
+|--------|---------------|
+| Feature | New spec directory in `cspec/specs/<feature>/` |
+| Enhancement | Work spec with ADDED/MODIFIED sections → merge into base |
+| Bug Fix | Work spec with MODIFIED sections → merge into base |
+| Refactor | May not need spec changes (behavior unchanged) |
+| Deprecation | Work spec with REMOVED sections → merge into base |
 
 ### Outputs
 
-- Specification artifacts (varies by nature and boundaries)
-- Validation hooks (commands/tests to verify implementation)
+- Specs in `cspec/work/<work-slug>/spec-<feature>.md`
+- Diagrams as needed (`.mmd` files)
+- Ready for implementation
 
 ### Documents
 
@@ -201,35 +199,94 @@ For coding agents to work effectively:
 
 1. **Run validation hooks** - Automated checks from spec
 2. **Review against acceptance criteria** - Manual or automated
-3. **Verify boundaries** - Each crossed boundary works correctly
+3. **Verify scenarios** - Each Given/When/Then passes
 4. **Regression check** - Existing functionality preserved
 5. **Sign-off** - Human approval
 
+### Post-Verification Cleanup
+
+1. **Merge specs** - Work specs (`cspec/work/<slug>/spec-*.md`) merge into base specs (`cspec/specs/<feature>/spec.md`)
+2. **Copy diagrams** - Any new diagrams move to permanent spec directories
+3. **Delete work directory** - `rm -rf cspec/work/<work-slug>/`
+4. **Only specs survive** - All other artifacts (issue, proposal, context) are deleted
+
 ### Outputs
 
-- Verification report
-- Issue closed (status: `done`)
+- Updated base specs in `cspec/specs/`
+- Issue closed
+- Work directory deleted
 
 ---
 
 ## Artifact Lifecycle
 
-### Transient vs Persistent
+### Permanent vs Ephemeral
 
-| Type | Description | Examples |
-|------|-------------|----------|
-| **Transient** | Discard after issue complete | Feature wireframes, implementation plans, task breakdowns |
-| **Persistent** | Source of truth, maintained over time | API contracts, database schema, business rules, ADRs |
+| Type | Location | Description | Examples |
+|------|----------|-------------|----------|
+| **Permanent** | `cspec/specs/` | Source of truth, maintained over time | Feature specs, sequence diagrams, state diagrams |
+| **Ephemeral** | `cspec/work/` | Discard after work complete | Issues, proposals, context snapshots, work-in-progress specs |
+
+### Directory Structure
+
+```
+cspec/
+├── specs/                         # PERMANENT - Source of truth
+│   └── <feature>/                 # One directory per feature
+│       ├── spec.md                # Gherkin-style business rules
+│       ├── sequence.mmd           # Sequence diagrams
+│       └── state.mmd              # State diagrams
+│
+└── work/                          # EPHEMERAL - Delete when done
+    └── <work-slug>/               # One directory per work item
+        ├── issue.md               # The trigger (what/why)
+        ├── proposal.md            # High-level approach
+        ├── context/               # Snapshots, RCA, research
+        │   └── *.md
+        └── spec-<feature>.md      # Specs being created/modified
+```
+
+### Spec Format
+
+Specs use Gherkin-style business rules with SHALL statements:
+
+```markdown
+# <feature-name> Specification
+
+## Requirement: <Requirement Name>
+
+The <subject> SHALL <behavior>.
+
+### Scenario: <scenario description>
+
+**Given** <precondition>
+**And** <additional precondition>
+**When** <action>
+**Then** <expected result>
+**And** <additional expected result>
+```
+
+Key principles:
+- **No implementation details** - Pure business rules, no code, no tech decisions
+- **SHALL statements** - Each requirement is a testable obligation
+- **Scenarios** - Given/When/Then for unambiguous behavior
+- **Scoped appropriately** - No monolithic specs, one feature per directory
 
 ### Delta Management
 
-For changes to existing systems:
+When enhancing existing features:
+
+1. **Create work directory**: `cspec/work/<work-slug>/`
+2. **Write specs** as `spec-<feature>.md` in the work directory
+3. **Include ADDED/MODIFIED/REMOVED sections** to show what changes
+4. **After implementation**: Merge into base spec at `cspec/specs/<feature>/spec.md`
+5. **Delete work directory**: `rm -rf cspec/work/<work-slug>/`
 
 ```
-Current Truth + Delta Spec = New Truth
+Work spec (ephemeral) + Base spec (permanent) → Updated base spec
 ```
 
-The delta spec documents what changes; upon completion, the persistent source of truth is updated.
+A single piece of work may produce multiple specs targeting different features. Each gets merged into its respective base spec.
 
 ---
 
@@ -255,10 +312,10 @@ The delta spec documents what changes; upon completion, the persistent source of
 
 ### Verification → Done Gate
 
-- [ ] Verification report complete
+- [ ] All scenarios pass
 - [ ] Human sign-off obtained
-- [ ] Persistent artifacts updated
-- [ ] Transient artifacts archived/deleted
+- [ ] Work specs merged into `cspec/specs/`
+- [ ] Work directory deleted
 
 ---
 
@@ -267,30 +324,31 @@ The delta spec documents what changes; upon completion, the persistent source of
 ```
 1. Issue arrives
    │
+   ├─→ Create work directory: cspec/work/<slug>/
+   ├─→ Write issue.md (what/why)
    ├─→ Classify (nature + impact)
-   ├─→ Gather required context
    ├─→ Define scope & acceptance criteria
-   ├─→ Validate → Issue READY
    │
 2. Write Specification
    │
-   ├─→ Identify boundaries crossed
-   ├─→ Create spec artifacts per boundary
-   ├─→ Define validation hooks
+   ├─→ Identify affected features
+   ├─→ Write spec-<feature>.md for each
+   ├─→ Add diagrams as needed
    ├─→ Review → Spec APPROVED
    │
 3. Implement
    │
-   ├─→ Follow spec exactly
+   ├─→ Follow spec scenarios exactly
    ├─→ Run validation hooks
    ├─→ Complete → Implementation DONE
    │
-4. Verify
+4. Verify & Cleanup
    │
    ├─→ Run all validation hooks
    ├─→ Check acceptance criteria
-   ├─→ Update persistent artifacts
-   └─→ Sign-off → Issue CLOSED
+   ├─→ Merge work specs into cspec/specs/<feature>/spec.md
+   ├─→ Delete work directory
+   └─→ Sign-off → DONE (only specs survive)
 ```
 
 ---
