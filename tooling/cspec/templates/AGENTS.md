@@ -11,11 +11,15 @@ The `cspec` CLI provides the following commands:
 | Command | Description |
 |---------|-------------|
 | `cspec init` | Initialize spec-driven development (creates directories + installs slash commands) |
-| `cspec validate <path>` | Validate an issue file against the schema |
-| `cspec validate <path> --strict` | Validate with strict mode (fail on warnings) |
-| `cspec list` | List all issues in the project |
-| `cspec list --status=<status>` | Filter issues by status (draft, ready, in-progress, blocked, done) |
-| `cspec update` | Update slash commands to latest version |
+| `cspec update` | Update slash commands, issue templates, and AGENTS.md to latest version |
+| `cspec status` | Check project health and report status |
+| `cspec onboard` | Onboard to a project (outputs prompt to populate PROJECT CONTEXT) |
+| `cspec specs list` | List all permanent specs |
+| `cspec specs show <feature>` | Show a feature spec |
+| `cspec work list` | List all work in progress |
+| `cspec work show <slug>` | Show details of a work item |
+| `cspec templates list` | List all available issue templates (taxonomy) |
+| `cspec templates get <name>` | Get a fillable issue template (markdown, yaml, or json) |
 
 ---
 

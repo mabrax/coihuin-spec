@@ -510,6 +510,120 @@ def onboard(force: bool):
 
 
 @main.group()
+def templates():
+    """Commands for querying issue templates."""
+    pass
+
+
+@templates.command("list")
+def templates_list():
+    """List all available issue templates."""
+    if not ISSUE_TEMPLATES_DIR.exists():
+        click.echo("No issue templates found in package.")
+        sys.exit(1)
+
+    template_files = sorted(ISSUE_TEMPLATES_DIR.glob("*.yml"))
+
+    if not template_files:
+        click.echo("No issue templates found.")
+        sys.exit(1)
+
+    click.echo(f"Available issue templates ({len(template_files)}):\n")
+
+    for tf in template_files:
+        content = yaml.safe_load(tf.read_text())
+        name = tf.stem
+        description = content.get("description", "No description")
+        labels = content.get("labels", [])
+        labels_str = f" [{', '.join(labels)}]" if labels else ""
+
+        click.echo(f"  {name}")
+        click.echo(f"    {description}{labels_str}")
+
+
+@templates.command("get")
+@click.argument("name")
+@click.option("--format", "-f", "output_format", type=click.Choice(["markdown", "yaml", "json"]), default="markdown", help="Output format")
+def templates_get(name: str, output_format: str):
+    """Get an issue template by name.
+
+    Outputs a fillable template that agents can use to create issues.
+
+    Examples:
+        cspec templates get feature
+        cspec templates get bug --format yaml
+    """
+    import json as json_module
+
+    template_file = ISSUE_TEMPLATES_DIR / f"{name}.yml"
+
+    if not template_file.exists():
+        click.echo(f"Template not found: {name}", err=True)
+        available = [f.stem for f in ISSUE_TEMPLATES_DIR.glob("*.yml")]
+        if available:
+            click.echo(f"Available: {', '.join(sorted(available))}", err=True)
+        sys.exit(1)
+
+    content = yaml.safe_load(template_file.read_text())
+
+    if output_format == "yaml":
+        click.echo(template_file.read_text())
+        return
+
+    if output_format == "json":
+        click.echo(json_module.dumps(content, indent=2))
+        return
+
+    # Markdown format - convert to fillable template
+    template_name = content.get("name", name.title())
+    description = content.get("description", "")
+
+    lines = [f"# {template_name}", ""]
+    if description:
+        lines.append(f"> {description}")
+        lines.append("")
+
+    body = content.get("body", [])
+    for field in body:
+        field_type = field.get("type")
+        attrs = field.get("attributes", {})
+        validations = field.get("validations", {})
+
+        label = attrs.get("label", "")
+        field_desc = attrs.get("description", "")
+        placeholder = attrs.get("placeholder", "")
+        required = validations.get("required", False)
+        options = attrs.get("options", [])
+
+        # Section header
+        req_marker = " *" if required else ""
+        lines.append(f"## {label}{req_marker}")
+
+        # Description as comment
+        if field_desc:
+            lines.append(f"<!-- {field_desc} -->")
+
+        # Options for dropdowns
+        if field_type == "dropdown" and options:
+            opts_str = ", ".join(options)
+            lines.append(f"<!-- Options: {opts_str} -->")
+            lines.append("")
+            lines.append(f"[SELECT: {opts_str}]")
+
+        # Placeholder content
+        elif placeholder:
+            lines.append("")
+            lines.append(placeholder.rstrip())
+
+        else:
+            lines.append("")
+
+        lines.append("")
+
+    click.echo("\n".join(lines))
+
+
+@main.group()
 def specs():
     """Commands for managing permanent specs."""
     pass

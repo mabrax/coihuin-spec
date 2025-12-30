@@ -17,11 +17,11 @@ dependencies = [
 cspec = "cspec.cli:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/cspec"]
+packages = ["cspec"]
 
 [tool.hatch.build.targets.wheel.force-include]
-"src/cspec/commands" = "cspec/commands"
-"src/cspec/templates" = "cspec/templates"
+"cspec/commands" = "cspec/commands"
+"cspec/templates" = "cspec/templates"
 
 [build-system]
 requires = ["hatchling"]
