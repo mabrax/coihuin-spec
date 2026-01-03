@@ -698,6 +698,348 @@ def specs_show(feature: str):
             click.echo(f"  • {d.name}")
 
 
+SPEC_TEMPLATE = '''# <feature-name> Specification
+
+## Overview
+
+<1-2 sentence description of what this feature does>
+
+---
+
+## Requirement: <Requirement Name>
+
+The <subject> SHALL <behavior>.
+
+### Scenario: <scenario description>
+
+**Given** <precondition>
+**And** <additional precondition>
+**When** <action>
+**Then** <expected result>
+**And** <additional expected result>
+
+---
+
+## Requirement: <Another Requirement>
+
+The <subject> SHALL <behavior>.
+
+### Scenario: <happy path>
+
+**Given** <precondition>
+**When** <action>
+**Then** <expected result>
+
+### Scenario: <edge case>
+
+**Given** <precondition>
+**When** <action>
+**Then** <expected result>
+
+---
+
+## Delta Markers (for enhancements/changes)
+
+Use these when modifying existing specs:
+
+### ADDED: <new requirement>
+The <subject> SHALL <new behavior>.
+
+### MODIFIED: <changed requirement>
+~~The <subject> SHALL <old behavior>.~~
+The <subject> SHALL <new behavior>.
+
+### REMOVED: <deprecated requirement>
+~~The <subject> SHALL <removed behavior>.~~
+'''
+
+SPEC_TEMPLATE_GUIDE = '''
+## Key Principles
+
+1. **No implementation details** - Pure business rules, no code, no tech decisions
+2. **SHALL statements** - Each requirement is a testable obligation
+3. **Scenarios** - Given/When/Then for unambiguous behavior
+4. **Scoped appropriately** - One feature per spec, split large features
+
+## Location
+
+- Permanent specs: `cspec/specs/<feature>/spec.md`
+- Work-in-progress: `cspec/work/<slug>/spec-<feature>.md`
+
+## Workflow
+
+1. Write spec in work directory during implementation
+2. After verification, merge into permanent spec
+3. Delete work directory
+'''
+
+
+@specs.command("template")
+@click.option("--guide", "-g", is_flag=True, help="Include usage guide")
+def specs_template(guide: bool):
+    """Show the spec template structure.
+
+    Outputs the Gherkin-style spec format for agents to reference
+    when writing specs during natural conversation.
+
+    Examples:
+        cspec specs template           # Just the template
+        cspec specs template --guide   # Template + usage guide
+    """
+    click.echo(SPEC_TEMPLATE)
+
+    if guide:
+        click.echo(SPEC_TEMPLATE_GUIDE)
+
+
+DESIGN_TEMPLATE = '''# <System/Feature Name> Design Document
+
+## Overview
+
+<1-2 paragraphs: What are we building and why?>
+
+---
+
+## Goals and Non-Goals
+
+### Goals
+
+- <What this design aims to achieve>
+- <Measurable outcomes>
+
+### Non-Goals
+
+- <What is explicitly out of scope>
+- <What we are NOT solving>
+
+---
+
+## Background
+
+<Current state, constraints, context that led to this design>
+
+### Constraints
+
+- <Technical constraints>
+- <Business constraints>
+- <Timeline constraints>
+
+---
+
+## System Architecture
+
+<High-level description of the system>
+
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│  Component  │────▶│  Component  │────▶│  Component  │
+│      A      │     │      B      │     │      C      │
+└─────────────┘     └─────────────┘     └─────────────┘
+```
+
+### Components
+
+| Component | Responsibility |
+|-----------|----------------|
+| <name> | <what it does> |
+
+---
+
+## Component Design
+
+### <Component Name>
+
+**Responsibility**: <single responsibility>
+
+**Interfaces**:
+- Input: <what it receives>
+- Output: <what it produces>
+
+**Key Decisions**:
+- <decision and rationale>
+
+---
+
+## Data Model
+
+### Entities
+
+| Entity | Description | Key Fields |
+|--------|-------------|------------|
+| <name> | <purpose> | <fields> |
+
+### Relationships
+
+<Entity relationship description or diagram>
+
+### Storage
+
+- **Database**: <type and rationale>
+- **Caching**: <strategy>
+- **File Storage**: <if applicable>
+
+---
+
+## API Contracts
+
+### <API/Interface Name>
+
+```
+<method signature or endpoint>
+```
+
+**Request**: <structure>
+**Response**: <structure>
+**Errors**: <error cases>
+
+---
+
+## Dependencies
+
+### External Systems
+
+| System | Purpose | Failure Mode |
+|--------|---------|--------------|
+| <name> | <why needed> | <what happens if unavailable> |
+
+### Libraries
+
+| Library | Purpose | Version |
+|---------|---------|---------|
+| <name> | <why> | <version> |
+
+---
+
+## Alternatives Considered
+
+### Option 1: <Name>
+
+<Description>
+
+**Pros**: <advantages>
+**Cons**: <disadvantages>
+**Why rejected**: <reason>
+
+### Option 2: <Name>
+
+<Description>
+
+**Pros**: <advantages>
+**Cons**: <disadvantages>
+**Why rejected**: <reason>
+
+---
+
+## Risks and Mitigations
+
+| Risk | Impact | Probability | Mitigation |
+|------|--------|-------------|------------|
+| <risk> | High/Med/Low | High/Med/Low | <mitigation> |
+
+---
+
+## Security Considerations
+
+- **Authentication**: <approach>
+- **Authorization**: <approach>
+- **Data Protection**: <encryption, PII handling>
+- **Attack Vectors**: <considered threats>
+
+---
+
+## Observability
+
+- **Logging**: <what to log, log levels>
+- **Metrics**: <key metrics to track>
+- **Alerting**: <alert conditions>
+- **Tracing**: <distributed tracing approach>
+
+---
+
+## Rollout Plan
+
+### Phases
+
+1. **Phase 1**: <scope and criteria>
+2. **Phase 2**: <scope and criteria>
+
+### Migration
+
+<How to migrate from current state>
+
+### Rollback
+
+<How to rollback if issues arise>
+
+---
+
+## Open Questions
+
+- [ ] <Unresolved question 1>
+- [ ] <Unresolved question 2>
+
+---
+
+## References
+
+- <Link to related docs>
+- <Link to specs>
+'''
+
+DESIGN_TEMPLATE_GUIDE = '''
+## When to Write a Design Doc
+
+- New system or major feature
+- Significant architectural changes
+- Cross-team dependencies
+- High-risk changes
+
+## Key Principles
+
+1. **Justify decisions** - Not just "what" but "why"
+2. **Explicit trade-offs** - What you're giving up
+3. **Reviewable** - Others can challenge assumptions
+4. **Living document** - Update as design evolves
+
+## Recommended Diagrams
+
+- **C4 Context** - System in its environment
+- **C4 Container** - High-level components
+- **Sequence** - Key interaction flows
+- **State** - State machines if applicable
+- **Data Flow** - How data moves through system
+
+## Location
+
+- Work-in-progress: `cspec/work/<slug>/design.md`
+- Reference after completion: Link from spec or archive
+'''
+
+
+@main.group()
+def design():
+    """Commands for architectural design documents."""
+    pass
+
+
+@design.command("template")
+@click.option("--guide", "-g", is_flag=True, help="Include usage guide")
+def design_template(guide: bool):
+    """Show the design document template.
+
+    Outputs the architectural design document structure for agents
+    to reference when creating technical designs.
+
+    Examples:
+        cspec design template           # Just the template
+        cspec design template --guide   # Template + usage guide
+    """
+    click.echo(DESIGN_TEMPLATE)
+
+    if guide:
+        click.echo(DESIGN_TEMPLATE_GUIDE)
+
+
 @main.group()
 def work():
     """Commands for managing work in progress."""
