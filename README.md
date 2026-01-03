@@ -50,20 +50,21 @@ uv run cspec init
 ```
 
 This creates:
-- `cspec/issues/` — Where issues live
+- `cspec/specs/` — Permanent specifications
+- `cspec/work/` — Ephemeral work in progress
 - `.claude/commands/cspec/` — Slash commands for Claude Code
 
-### Create and validate an issue
+### Create an issue and start work
 
 ```bash
 # Use the slash command in Claude Code
 /cspec:issue-create "Add user authentication"
 
-# Validate the issue
-uv run cspec validate cspec/issues/ISSUE-001.md
+# Check project status
+uv run cspec status
 
-# List all issues
-uv run cspec list
+# List work in progress
+uv run cspec work list
 ```
 
 ---
@@ -129,36 +130,36 @@ See [Change Taxonomy](docs/change-taxonomy-system.md) for the full list.
 Usage: cspec [OPTIONS] COMMAND [ARGS]...
 
 Commands:
-  init      Initialize spec-driven development in current project
-  validate  Validate an issue file against the schema
-  list      List all issues in the project
-  update    Update slash commands to latest version
+  init       Initialize spec-driven development in current project
+  update     Update cspec resources to latest version
+  status     Check project health and report status
+  onboard    Onboard to a spec-driven project
+  specs      Commands for managing permanent specs (list, show)
+  work       Commands for managing work in progress (list, show)
+  templates  Commands for querying issue templates (list, get)
 ```
 
-### Validation Example
+### Status Example
 
 ```bash
-$ cspec validate cspec/issues/ISSUE-001.md
+$ cspec status
 
-Validating ISSUE-001.md...
+Coihuin Spec Project Status
+========================================
 
-Schema Validation:
-  ✓ ID format valid
-  ✓ Title present and under 100 chars
-  ✓ Nature valid
-  ✓ Impact valid
-  ✓ Version matches impact
-  ✓ Status valid
-  ✓ Dates valid
+Directory Structure:
+  [OK] cspec/specs/
+  [OK] cspec/work/
+  [OK] .claude/commands/
 
-Body Validation:
-  ✓ Problem section present
-  ✓ Scope section present
-  ✓ In-scope items defined
-  ✓ Acceptance criteria defined
+Permanent Specs: 2
+
+Work in Progress: 1
+
+AGENTS.md: [OK]
 
 ========================================
-✓ VALIDATION PASSED
+Status: HEALTHY
 ```
 
 ---
